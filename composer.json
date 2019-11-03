@@ -1,0 +1,34 @@
+{
+  "name": "cronqvist/laravel-api",
+  "description": "A Laravel package for creating REST APIs. Tightly integrated with Spatie and Laravel Passport",
+  "keywords": ["laravel-api", "api", "laravel"],
+  "license": "MIT",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Jim Cronqvist",
+      "email": "jim.cronqvist@gmail.com"
+    }
+  ],
+  "require" : {
+    "php": "^7.1",
+    "laravel/framework": "^6.0",
+    "laravel/passport": "^7.4",
+    "spatie/laravel-permission": "^3.0",
+    "spatie/laravel-query-builder": "^2.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "Cronqvist\\Api\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Cronqvist\\Api\\ApiServiceProvider"
+      ]
+    }
+  }
+}

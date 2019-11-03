@@ -1,0 +1,10 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Cronqvist\Api\Http\Requests\FormRequest as BaseFormRequest;
+
+class FormRequest extends BaseFormRequest
+{
+
+}

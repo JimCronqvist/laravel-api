@@ -1,0 +1,10 @@
+<?php
+
+namespace App\Policies;
+
+use Cronqvist\Api\Policies\Policy as BasePolicy;
+
+class Policy extends BasePolicy
+{
+
+}

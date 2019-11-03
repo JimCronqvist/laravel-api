@@ -1,0 +1,45 @@
+<?php
+
+namespace DummyNamespace;
+
+use App\Http\Policies\Policy;
+use NamespacedDummyModel;
+use NamespacedDummyUserModel;
+
+class DummyClass extends Policy
+{
+    /**
+     * Model class for the Policy
+     *
+     * @var string
+     */
+    protected $modelClass = DummyModel::class;
+
+    /**
+     * Control if guests are allowed for each endpoint
+     *
+     * @var array
+     */
+    protected $allowGuests = [
+        'viewAny'     => false,
+        'view'        => false,
+        'create'      => false,
+        'update'      => false,
+        'delete'      => false,
+        'restore'     => false,
+        'forceDelete' => false,
+    ];
+
+
+    /**
+     * Return if the logged in user is associated with the DocDummyModel.
+     *
+     * @param \NamespacedDummyUserModel $user
+     * @param  \NamespacedDummyModel  $dummyModel
+     * @return bool
+     */
+    protected function isOwn(User $user, DummyModel $dummyModel)
+    {
+        return $dummyModel->user_id == $user->getKey();
+    }
+}

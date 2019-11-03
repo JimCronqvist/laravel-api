@@ -1,0 +1,19 @@
+<?php
+
+namespace DummyNamespace;
+
+use Cronqvist\Api\Http\Resources\ApiResource;
+
+class DummyClass extends ApiResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function toArray($request)
+    {
+        return parent::toArray($request);
+    }
+}

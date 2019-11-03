@@ -1,0 +1,36 @@
+<?php
+
+namespace DummyNamespace;
+
+use DummyRootNamespaceHttp\Controllers\ApiController;
+use DummyFullModelClass;
+use Spatie\QueryBuilder\QueryBuilder;
+
+class DummyClass extends ApiController
+{
+    /**
+     * Model for the API Resource Controller
+     *
+     * @var string
+     */
+    protected $modelClass = DummyModelClass::class;
+
+
+    /**
+     * Get the Builder instance used for the index and show actions.
+     *
+     * @return \Spatie\QueryBuilder\QueryBuilder
+     */
+    protected function getBuilder()
+    {
+        //$request = $this->getRequest();
+        $builder = QueryBuilder::for(DummyModelClass::class)
+            //->defaultSort('name')
+            ->allowedIncludes([])
+            ->allowedFilters([])
+            ->allowedSorts([])
+            ;
+
+        return $builder;
+    }
+}
