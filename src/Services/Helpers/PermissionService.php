@@ -8,6 +8,7 @@ use Spatie\Permission\Models\Role;
 class PermissionService
 {
     public static $tablePolicies = [
+        'viewAny',
         'view',
         'viewOwn',
         'create',
