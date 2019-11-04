@@ -33,7 +33,7 @@ class ApiResource extends JsonResource
      * @param $data
      * @return mixed
      */
-    public function transformRelations($data)
+    protected function transformRelations($data)
     {
         $model = $this->resource instanceof Model ? $this->resource : null;
         if($model) {
@@ -50,7 +50,7 @@ class ApiResource extends JsonResource
      * @param $relation
      * @return mixed
      */
-    public function transformRelation($relation)
+    protected function transformRelation($relation)
     {
         if(empty($relation)) return $relation;
 
@@ -79,5 +79,18 @@ class ApiResource extends JsonResource
         }
         $resource = str_replace('App\Models', 'App\Http\Resources', $modelClass) . 'Resource';
         return class_exists($resource) ? $resource : null;
+    }
+
+    /**
+     * Retrieve a relationship if it has been loaded and map it to its Resource class.
+     *
+     * @param string $relationship
+     * @return \Cronqvist\Api\Http\Resources\ApiResource|\Illuminate\Http\Resources\MissingValue
+     */
+    protected function whenLoadedToResource($relationship)
+    {
+        return $this->whenLoaded($relationship, function() use($relationship) {
+            return $this->transformRelation($this->resource->getRelation($relationship));
+        });
     }
 }

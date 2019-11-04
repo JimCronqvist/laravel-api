@@ -145,10 +145,25 @@ $this->can($user, 'xyz'); // Will check if the user has a permission called "{ta
 
 ### Resource
 
-Resources generated will extend the "ApiResource", which will help with the following things:
-- Automatically detect and map relations to models to each corresponding Resource class. 
-  This is done to ensure consistent output for all models of the same class (mapping can be overridden).
-- Filter out all hidden attributes specified on the model automatically.
+Resources generated will extend the "ApiResource", which will automatically detect loaded relations and map them to 
+the related Resource classes. 
+This is done to ensure consistent output for all models of the same class.
+The mapping can be overridden by using the property called `$modelResourceMap`.
+
+If you happen to override the default boilerplate and you no longer call parent::toArray(), you can still get this 
+behavior by using the method 'whenLoadedToResource'.
+
+```
+public function toArray($request)
+{
+    return [
+        'id' => $this->id,
+        'author' => $this->whenLoadedToResource('author'),
+    ];
+}
+```
+
+This will automatically map the 'author' relation to the AuthorResource.
 
 ### Other generated classes
 
