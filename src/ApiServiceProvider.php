@@ -13,6 +13,7 @@ use Cronqvist\Api\Http\Middleware\JsonMiddleware;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Passport\Passport;
 
 class ApiServiceProvider extends BaseServiceProvider
 {
@@ -94,6 +95,10 @@ class ApiServiceProvider extends BaseServiceProvider
      */
     protected static function registerRoutes($name)
     {
+        Passport::routes(function ($router) {
+            $router->forAccessTokens();
+        });
+
         (new self(app()))->loadRoutesFrom(__DIR__ . '/routes/' . $name . '.php');
     }
 
