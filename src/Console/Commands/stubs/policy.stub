@@ -2,7 +2,7 @@
 
 namespace DummyNamespace;
 
-use App\Http\Policies\Policy;
+use App\Policies\Policy;
 use NamespacedDummyModel;
 use NamespacedDummyUserModel;
 

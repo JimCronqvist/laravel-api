@@ -2,6 +2,8 @@
 
 namespace DummyNamespace;
 
+use App\Http\Requests\FormRequest;
+
 class DummyClass extends FormRequest
 {
     /**
