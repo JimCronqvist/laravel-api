@@ -24,8 +24,19 @@ Publish the assets provided by this package by using artisan:
 
 `php artisan vendor:publish --tag=api`
 
-To register any of the routes provided, update the boot method in 'app/Providers/AppServiceProvider' accordingly:
+Register the Middleware in 'app/Http/Kernel.php' accordingly:
+```
+protected $middlewareGroups = [
+    ...
+    'api' => [
+        ...
+        'api.guard', // Will ensure that the 'api' guard is used
+        'api.json', // Will ensure that all responses are returned as json
+    ]
+];
+```
 
+To register any of the routes provided, update the boot method in 'app/Providers/AppServiceProvider' accordingly:
 ```
 public function boot()
 {
@@ -36,6 +47,8 @@ public function boot()
     ApiServiceProvider::registerMergeRoutes(); 
 }
 ```
+
+
 
 ## Usage
 Create a complete API resource for a table with: 

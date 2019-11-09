@@ -2,10 +2,13 @@
 
 namespace DummyNamespace;
 
-use App\Http\Requests\FormRequest;
+use Cronqvist\Api\Http\Requests\TransformRules;
+use Illuminate\Foundation\Http\FormRequest;
 
 class DummyClass extends FormRequest
 {
+    use TransformRules;
+
     /**
      * Determine if the user is authorized to make this request.
      *

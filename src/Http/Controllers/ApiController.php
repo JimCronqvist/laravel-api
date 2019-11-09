@@ -2,6 +2,10 @@
 
 namespace Cronqvist\Api\Http\Controllers;
 
+use Cronqvist\Api\Exception\ApiAuthorizationException;
+use Cronqvist\Api\Exception\ApiException;
+use Cronqvist\Api\Services\Helpers\GuessForModel;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -10,12 +14,17 @@ use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Routing\Controller as BaseController;
-use Exception;
+use Illuminate\Support\Facades\Route;
 use Spatie\QueryBuilder\QueryBuilderRequest;
+use Exception;
 
-class ApiController extends BaseController
+abstract class ApiController extends BaseController
 {
-    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+    use DispatchesJobs, ValidatesRequests;
+    use AuthorizesRequests {
+        authorize as protected baseAuthorize;
+    }
+    use GuessForModel;
 
     /**
      * Model for the API Resource Controller
@@ -56,8 +65,9 @@ class ApiController extends BaseController
      *
      * @return \Illuminate\Http\Resources\Json\JsonResource
      * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Exception
      */
-    public function index()
+    protected function defaultIndex()
     {
         $this->authorizeMethod('index');
         $data = [];
@@ -72,7 +82,7 @@ class ApiController extends BaseController
                 $data = $this->transformData($data);
             }
         }
-        $resource = $this->getResourceClass();
+        $resource = $this->guessResourceClassFor($this->getModelClass());
         return $resource::collection($data);
     }
 
@@ -81,13 +91,14 @@ class ApiController extends BaseController
      *
      * @return \Illuminate\Http\Resources\Json\JsonResource
      * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Exception
      */
-    public function store()
+    protected function defaultStore()
     {
-        $formRequest = $this->getFormRequest();
+        $formRequest = $this->resolveFormRequestFor($this->getModelClass());
         $this->authorizeMethod('store');
         $model = $this->getModelClass()::create($formRequest->validated());
-        $resource = $this->getResourceClass();
+        $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
     }
 
@@ -98,7 +109,7 @@ class ApiController extends BaseController
      * @return \Illuminate\Http\Resources\Json\JsonResource
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
-    public function show(int $id)
+    protected function defaultShow(int $id)
     {
         if(($builder = $this->getBuilder()) instanceof Builder) {
             // Remove unnecessary clauses from the queries that will only decrease performance
@@ -110,9 +121,10 @@ class ApiController extends BaseController
         } else {
             $model = $this->getModelClass()::findOrFail($id);
         }
+        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('show', $model);
         $model = $this->transformModel($model);
-        $resource = $this->getResourceClass();
+        $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
     }
 
@@ -123,14 +135,18 @@ class ApiController extends BaseController
      * @param int $id
      * @return \Illuminate\Http\Resources\Json\JsonResource
      * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     * @throws \Exception
      */
-    public function update(int $id)
+    protected function defaultUpdate(int $id)
     {
-        $formRequest = $this->getFormRequest();
+        /** @var $model \Illuminate\Database\Eloquent\Model */
+        $formRequest = $this->resolveFormRequestFor($this->getModelClass());
         $model = $this->getModelClass()::findOrFail($id);
+        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('update', $model);
         $model->update($formRequest->validated());
-        $resource = $this->getResourceClass();
+        $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
     }
 
@@ -140,10 +156,13 @@ class ApiController extends BaseController
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Exception
      */
-    public function destroy(int $id)
+    protected function defaultDestroy(int $id)
     {
+        /** @var $model \Illuminate\Database\Eloquent\Model */
         $model = $this->getModelClass()::findOrFail($id);
+        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('destroy', $model);
         $model->delete();
         return response()->json(null, 204);
@@ -188,39 +207,37 @@ class ApiController extends BaseController
     }
 
     /**
-     * Get the resource class based on the model
-     *
-     * @return string
-     * @throws \Exception
-     */
-    protected function getFormRequestClass()
-    {
-        return str_replace('App\Models', 'App\Http\Requests', $this->getModelClass()) . 'Request';
-    }
-
-    /**
-     * Get the resource class based on the model
-     *
-     * @return string
-     * @throws \Exception
-     */
-    protected function getResourceClass()
-    {
-        return str_replace('App\Models', 'App\Http\Resources', $this->getModelClass()) . 'Resource';
-    }
-
-    /**
      * Authorize each controller method for the API Resource, as we are unable to use "$this->authorizeResource()"
      * because of our implementation where we do not resolve the model automatically in the route
      *
      * @param string $method
      * @param \Illuminate\Database\Eloquent\Model $model
      * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Exception
      */
     protected function authorizeMethod($method, Model $model = null)
     {
         if($this->applyPolicy) {
             $this->authorize($this->resourceAbilityMap()[$method] ?? $method, $model ?? $this->getModelClass());
+        }
+    }
+
+    /**
+     * Authorize a given action for the current user.
+     *
+     * @param mixed $ability
+     * @param mixed|array $arguments
+     * @return \Illuminate\Auth\Access\Response
+     * @throws \Cronqvist\Api\Exception\ApiAuthorizationException
+     */
+    public function authorize($ability, $arguments = [])
+    {
+        try {
+            return $this->baseAuthorize($ability, $arguments);
+        } catch (AuthorizationException $exception) {
+            $exception = new ApiAuthorizationException(null, null, $exception);
+            $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $arguments);
+            throw $exception;
         }
     }
 
@@ -238,17 +255,6 @@ class ApiController extends BaseController
     }
 
     /**
-     * Get the FormRequest instance for the resource
-     *
-     * @return \Illuminate\Foundation\Http\FormRequest
-     * @throws \Exception
-     */
-    protected function getFormRequest()
-    {
-        return app($this->getFormRequestClass());
-    }
-
-    /**
      * Disable pagination by setting the perPage to 0.
      *
      * @return void
@@ -256,5 +262,22 @@ class ApiController extends BaseController
     protected function disablePagination()
     {
         $this->perPage = 0;
+    }
+
+    /**
+     * Handle calls to missing methods on the controller. Check if the default methods exist first.
+     *
+     * @param string $method
+     * @param array $parameters
+     * @return mixed
+     * @throws \BadMethodCallException
+     */
+    public function __call($method, $parameters)
+    {
+        $defaultMethod = 'default'.ucfirst($method);
+        if(method_exists($this, $defaultMethod)) {
+            return $this->{$defaultMethod}(...$parameters);
+        }
+        return parent::__call($method, $parameters);
     }
 }

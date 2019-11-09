@@ -20,7 +20,7 @@ class ApiMakeCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:api {name} {--seeder} {--factory}';
+    protected $signature = 'make:api {name} {--service} {--seeder} {--factory}';
 
     /**
      * The console command description.
@@ -65,9 +65,9 @@ class ApiMakeCommand extends Command
             }
         }
 
-        // Use custom version of 'make:controller' for APIs instead, with pre-filled php code.
         $this->call('make:apiController', [
-            'name' => $name
+            'name' => $name,
+            '--service' => $this->option('service'),
         ]);
         $this->call('make:apiResource', [
             'name' => $name.'Resource'
@@ -77,7 +77,7 @@ class ApiMakeCommand extends Command
         ]);
         $this->call('make:apiPolicy', [
             'name' => Str::singular($name).'Policy',
-            '--model' => 'Models/'.$name
+            '--model' => ($name === 'User' ? 'User' : 'Models/'.$name)
         ]);
 
         $this->line('Please add the new routes in routes/api.php', 'important');

@@ -26,9 +26,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Gets the current logged in user
+     * Get the current logged in user
      *
-     * @return \App\User|\App\Http\Resources\UserResource
+     * @return \Illuminate\Contracts\Auth\Authenticatable|\App\Http\Resources\UserResource|null
      */
     public function user()
     {
@@ -44,6 +44,7 @@ class AuthController extends Controller
      * Logout endpoint
      *
      * @return \Illuminate\Http\JsonResponse
+     * @throws \Cronqvist\Api\Exception\ApiException
      */
     public function logout()
     {

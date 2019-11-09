@@ -12,10 +12,12 @@
   ],
   "require" : {
     "php": "^7.2",
+    "ext-json": "*",
     "laravel/framework": "^6.0",
     "laravel/passport": "^7.4",
     "spatie/laravel-permission": "^3.0",
-    "spatie/laravel-query-builder": "^2.0"
+    "spatie/laravel-query-builder": "^2.0",
+    "phpdocumentor/reflection-docblock": "^4.3"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,

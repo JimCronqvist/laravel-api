@@ -44,13 +44,14 @@ class ApiAllMakeCommand extends Command
             if($model instanceof Pivot) continue;
 
             $name = str_replace('App\Models\\', '', get_class($model));
+            $name = str_replace('App\User', 'User', $name); // Handle the default User class from Laravel
             $name = str_replace('\\', '/', $name);
 
             if($prefix) {
                 // Filter out something here...
             }
 
-            $this->line("Generate API for table '" . $model->getTable() . "' (App\Models\\" . $name . ')');
+            $this->line("Generate API for table '" . $model->getTable() . "' (" . get_class($model) . ')');
             $this->call('make:api', [
                 'name' => $name,
                 '--seeder' => (bool) $this->option('seeder'),

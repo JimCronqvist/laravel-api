@@ -7,6 +7,11 @@ use Spatie\Permission\Models\Role;
 
 class PermissionService
 {
+    /**
+     * Default CRUD policies
+     *
+     * @var array
+     */
     public static $tablePolicies = [
         'viewAny',
         'view',
@@ -22,6 +27,12 @@ class PermissionService
         //'forceDeleteOwn',
     ];
 
+    /**
+     * Create roles if they do not exist
+     *
+     * @param array $roles
+     * @param string $guard
+     */
     public static function createRoles(array $roles, $guard = 'api')
     {
         foreach($roles as $role) {
@@ -29,6 +40,12 @@ class PermissionService
         }
     }
 
+    /**
+     * Create permissions if they do not exist
+     *
+     * @param array $permissions
+     * @param string $guard
+     */
     public static function createPermissions(array $permissions, $guard = 'api')
     {
         foreach($permissions as $role) {

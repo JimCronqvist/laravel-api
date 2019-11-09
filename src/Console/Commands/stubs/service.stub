@@ -1,0 +1,45 @@
+<?php
+
+namespace DummyNamespace;
+
+use NamespacedDummyModel;
+
+class DummyClass
+{
+    /**
+     * Create a new model
+     *
+     * @return \NamespacedDummyModel
+     */
+    public function create(array $data)
+    {
+        $DummyModelVariable = DummyModel::create($data);
+        return $DummyModelVariable;
+    }
+
+    /**
+     * Update the model
+     *
+     * @param \NamespacedDummyModel $dummyModel
+     * @param array $data
+     * @return bool
+     */
+    public function update(DummyModel $dummyModel, array $data)
+    {
+        $updated = $dummyModel->update($data);
+        return $updated;
+    }
+
+    /**
+     * Delete the model
+     *
+     * @param \NamespacedDummyModel $dummyModel
+     * @return bool
+     * @throws \Exception
+     */
+    public function delete(DummyModel $dummyModel)
+    {
+        $deleted = $dummyModel->delete();
+        return $deleted;
+    }
+}

@@ -2,10 +2,14 @@
 
 namespace Cronqvist\Api\Services\Auth;
 
-use App\User;
+use Cronqvist\Api\Exception\ApiException;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Laravel\Passport\HasApiTokens;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Token;
+use Symfony\Bridge\PsrHttpMessage\Factory\DiactorosFactory;
 
 class AuthService
 {
@@ -17,8 +21,8 @@ class AuthService
      * @param string $password
      * @param string $scopes
      * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
-
     public function login($username, $password, $scopes = '*')
     {
         // Send an internal API request to get an access token
@@ -42,9 +46,11 @@ class AuthService
             'scopes' => $scopes,
         ];
 
+        $passportController = app()->make(AccessTokenController::class);
+        /** @var $passportController AccessTokenController */
         $request = Request::create('/oauth/token', 'POST', $data);
-        $response = app()->handle($request);
-        /** @var $response \Illuminate\Http\Response */
+        $psr = (new DiactorosFactory)->createRequest($request); // See: CheckClientCredentials::handle() from Passport
+        $response = $passportController->issueToken($psr);
 
         // Add "expires_at" to the response
         $content = @json_decode($response->getContent(), true);
@@ -62,9 +68,8 @@ class AuthService
     /**
      * Retrieve the currently logged in user
      *
-     * @return \App\User
+     * @return \Illuminate\Contracts\Auth\Authenticatable|null
      */
-
     public function user()
     {
         $user = auth('api')->user();
@@ -74,13 +79,17 @@ class AuthService
     /**
      * Logout a user
      *
-     * @param \App\User|null $user
+     * @param \Illuminate\Contracts\Auth\Authenticatable $user
      * @param bool $logoutEverywhere
      * @return \Illuminate\Http\JsonResponse
+     * @throws \Cronqvist\Api\Exception\ApiException
      */
-
-    public function logout(User $user, $logoutEverywhere = false)
+    public function logout(Authenticatable $user, $logoutEverywhere = false)
     {
+        if(!in_array(HasApiTokens::class, class_uses_recursive($user))) {
+            throw new ApiException("The trait 'HasApiTokens' is missing in '" . get_class($user));
+        }
+
         $accessTokens = $logoutEverywhere ? $user->tokens() : [$user->token()];
 
         foreach($accessTokens as $accessToken) {

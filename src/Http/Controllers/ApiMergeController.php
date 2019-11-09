@@ -9,6 +9,12 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ApiMergeController extends BaseController
 {
+    /**
+     * Send multiple requests for resources in a single request
+     *
+     * @param Request $request
+     * @return array
+     */
     public function merge(Request $request)
     {
         $reqs = (array) $request->input('request', []);

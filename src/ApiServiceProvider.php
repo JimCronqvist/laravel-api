@@ -8,15 +8,17 @@ use Cronqvist\Api\Console\Commands\ApiMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiPolicyMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiResourceMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiRequestMakeCommand;
+use Cronqvist\Api\Console\Commands\ApiServiceMakeCommand;
 use Cronqvist\Api\Http\Middleware\ApiGuardMiddleware;
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
+use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use Illuminate\Support\Str;
-use Laravel\Passport\Passport;
 
 class ApiServiceProvider extends BaseServiceProvider
 {
+    use GuessForModel;
+
     /**
      * Bootstrap any application services.
      *
@@ -27,9 +29,9 @@ class ApiServiceProvider extends BaseServiceProvider
         // php artisan vendor:publish --tag=api
         $this->publishes([
             //__DIR__.'/config/api.php' => config_path('api.php'),
-            __DIR__ . '/Http/Controllers/stubs/ApiController.php.stub' => app_path('Http/Controllers/ApiController.php'),
-            __DIR__ . '/Policies/stubs/Policy.php.stub' => app_path('Policies/Policy.php'),
-            __DIR__ . '/Http/Requests/stubs/FormRequest.php.stub' => app_path('Http/Requests/FormRequest.php'),
+            __DIR__ . '/Http/Controllers/stubs/ApiController.stub' => app_path('Http/Controllers/ApiController.php'),
+            __DIR__ . '/Policies/stubs/Policy.stub' => app_path('Policies/Policy.php'),
+            __DIR__ . '/Http/Requests/stubs/FormRequest.stub' => app_path('Http/Requests/FormRequest.php'),
         ], 'api');
 
         if ($this->app->runningInConsole()) {
@@ -40,11 +42,12 @@ class ApiServiceProvider extends BaseServiceProvider
                 ApiPolicyMakeCommand::class,
                 ApiResourceMakeCommand::class,
                 ApiRequestMakeCommand::class,
+                ApiServiceMakeCommand::class,
             ]);
         }
 
-        self::registerMiddleware();
-        self::registerPolicies();
+        $this->registerMiddlewareAliases();
+        $this->registerPolicies();
     }
 
     /**
@@ -52,12 +55,16 @@ class ApiServiceProvider extends BaseServiceProvider
      *
      * @return void
      */
-    protected static function registerMiddleware()
+    protected function registerMiddlewareAliases()
     {
         /** @var \Illuminate\Routing\Router $router */
-        $router = app('router');
-        $router->prependMiddlewareToGroup('api', ApiGuardMiddleware::class);
-        $router->prependMiddlewareToGroup('api', JsonMiddleware::class);
+        $router = $this->app['router'];
+        $router->aliasMiddleware('api.guard', ApiGuardMiddleware::class);
+        $router->aliasMiddleware('api.json', JsonMiddleware::class);
+
+        // Let the developer prepend the middleware by themselves instead
+        //$router->prependMiddlewareToGroup('api', 'api.guard');
+        //$router->prependMiddlewareToGroup('api', 'api.json');
     }
 
     /**
@@ -65,7 +72,7 @@ class ApiServiceProvider extends BaseServiceProvider
      *
      * @return void
      */
-    protected static function registerPolicies()
+    protected function registerPolicies()
     {
         // Map the User::class to UserPolicy::class, as that does not match the below naming structure
         // User.php is not located in the Models folder
@@ -73,7 +80,7 @@ class ApiServiceProvider extends BaseServiceProvider
 
         // Change the naming convention for Laravel to look for Policy classes (default does not assume a "Models" dir)
         Gate::guessPolicyNamesUsing(function($modelClass) {
-            return 'App\\Policies\\' . Str::replaceFirst('App\\Models\\', '', $modelClass) . 'Policy';
+            return $this->guessPolicyClassFor($modelClass);
         });
 
         // If you are a "Super Admin", always pass the authorization checks
@@ -81,7 +88,7 @@ class ApiServiceProvider extends BaseServiceProvider
             if($result !== true && method_exists($user, 'isSuperAdmin')) {
                 if($user->isSuperAdmin()) {
                     // Perhaps also log something on the request here in the future to know if this was overridden...
-                    return true;
+                    //return true;
                 }
             }
         });
@@ -95,10 +102,6 @@ class ApiServiceProvider extends BaseServiceProvider
      */
     protected static function registerRoutes($name)
     {
-        Passport::routes(function ($router) {
-            $router->forAccessTokens();
-        });
-
         (new self(app()))->loadRoutesFrom(__DIR__ . '/routes/' . $name . '.php');
     }
 

@@ -2,10 +2,14 @@
 
 namespace Cronqvist\Api\Console\Commands;
 
+use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Routing\Console\ControllerMakeCommand;
+use Symfony\Component\Console\Input\InputOption;
 
 class ApiControllerMakeCommand extends ControllerMakeCommand
 {
+    use GuessForModel;
+
     /**
      * The console command name.
      *
@@ -62,6 +66,66 @@ class ApiControllerMakeCommand extends ControllerMakeCommand
      */
     protected function getStub()
     {
+        if($this->option('service')) {
+            return __DIR__ . '/stubs/controller.model.api.service.stub';
+        }
         return __DIR__ . '/stubs/controller.model.api.stub';
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return null
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function handle()
+    {
+        parent::handle();
+
+        $name = trim($this->argument('name'));
+
+        if($this->option('service')) {
+            $this->call('make:apiService', [
+                'name' => $name . 'Service',
+                '-m' => 'Models/' . $name,
+            ]);
+        }
+    }
+
+    /**
+     * Build the class with the given name.
+     *
+     * Remove the base controller import if we are already in base namespace.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    protected function buildClass($name)
+    {
+        $stub = parent::buildClass($name);
+
+        $modelClass = $this->parseModel($this->option('model'));
+
+        $replace = [
+            'DummyFullResourceClass' => $this->guessResourceClassFor($modelClass),
+            'DummyFullServiceClass' => $this->guessServiceClassFor($modelClass),
+            'DummyFullRequestClass' => $this->guessFormRequestClassFor($modelClass),
+        ];
+
+        $stub = str_replace(array_keys($replace), array_values($replace), $stub);
+
+        return $stub;
+    }
+
+    /**
+     * Get the console command options.
+     *
+     * @return array
+     */
+    protected function getOptions()
+    {
+        return array_merge(parent::getOptions(), [
+            ['service', null, InputOption::VALUE_NONE, 'Generate a service class for the controller class.'],
+        ]);
     }
 }

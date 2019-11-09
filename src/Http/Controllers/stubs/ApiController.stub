@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Cronqvist\Api\Http\Controllers\ApiController as BaseController;
 
-class ApiController extends BaseController
+abstract class ApiController extends BaseController
 {
 
 }
