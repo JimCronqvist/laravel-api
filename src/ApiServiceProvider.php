@@ -88,7 +88,7 @@ class ApiServiceProvider extends BaseServiceProvider
             if($result !== true && method_exists($user, 'isSuperAdmin')) {
                 if($user->isSuperAdmin()) {
                     // Perhaps also log something on the request here in the future to know if this was overridden...
-                    //return true;
+                    return true;
                 }
             }
         });
