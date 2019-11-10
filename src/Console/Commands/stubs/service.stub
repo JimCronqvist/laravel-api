@@ -9,6 +9,7 @@ class DummyClass
     /**
      * Create a new model
      *
+     * @param array $data
      * @return \NamespacedDummyModel
      */
     public function create(array $data)

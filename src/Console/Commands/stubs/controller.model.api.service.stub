@@ -58,8 +58,8 @@ class DummyClass extends ApiController
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \DummyFullRequestClass  $request
-     * @return \Illuminate\Http\Resources\Json\JsonResource
+     * @param \DummyFullRequestClass $request
+     * @return \DummyFullResourceClass
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
     public function store(DummyModelClassRequest $request)
@@ -72,9 +72,9 @@ class DummyClass extends ApiController
     /**
      * Update the specified resource in storage.
      *
-     * @param  \DummyFullRequestClass  $request
-     * @param  \DummyFullModelClass  $DummyModelVariable
-     * @return \Illuminate\Http\Resources\Json\JsonResource
+     * @param \DummyFullRequestClass $request
+     * @param \DummyFullModelClass $DummyModelVariable
+     * @return \DummyFullResourceClass
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
     public function update(DummyModelClassRequest $request, DummyModelClass $DummyModelVariable)
@@ -87,7 +87,7 @@ class DummyClass extends ApiController
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \DummyFullModelClass  $DummyModelVariable
+     * @param \DummyFullModelClass $DummyModelVariable
      * @return \Illuminate\Http\Response
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
