@@ -14,8 +14,8 @@ class DummyClass
      */
     public function create(array $data)
     {
-        $DummyModelVariable = DummyModel::create($data);
-        return $DummyModelVariable;
+        $dummyModel = DummyModel::create($data);
+        return $dummyModel;
     }
 
     /**
