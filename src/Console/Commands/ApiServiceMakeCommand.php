@@ -2,8 +2,6 @@
 
 namespace Cronqvist\Api\Console\Commands;
 
-use Symfony\Component\Console\Input\InputOption;
-
 class ApiServiceMakeCommand extends ApiPolicyMakeCommand
 {
     /**
@@ -47,17 +45,5 @@ class ApiServiceMakeCommand extends ApiPolicyMakeCommand
     protected function getDefaultNamespace($rootNamespace)
     {
         return $rootNamespace.'\Services\Api';
-    }
-
-    /**
-     * Get the console command arguments.
-     *
-     * @return array
-     */
-    protected function getOptions()
-    {
-        return [
-            ['model', 'm', InputOption::VALUE_REQUIRED, 'The model that the service applies to'],
-        ];
     }
 }

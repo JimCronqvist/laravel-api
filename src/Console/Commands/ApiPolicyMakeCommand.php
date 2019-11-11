@@ -3,6 +3,7 @@
 namespace Cronqvist\Api\Console\Commands;
 
 use Illuminate\Foundation\Console\PolicyMakeCommand as BasePolicyMakeCommand;
+use Symfony\Component\Console\Input\InputOption;
 
 class ApiPolicyMakeCommand extends BasePolicyMakeCommand
 {
@@ -25,6 +26,22 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
     }
 
     /**
+     * Execute the console command.
+     *
+     * @return bool|null
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function handle()
+    {
+        if(!$this->option('model')) {
+            $this->error('Not enough arguments (missing: "--model").');
+            return false;
+        }
+
+        return parent::handle();
+    }
+
+    /**
      * Replace the model for the given stub.
      *
      * @param  string  $stub
@@ -37,5 +54,19 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
         $model = app()->getNamespace() . str_replace('/', '\\', $model);
         $table = (new $model)->getTable();
         return str_replace('DummyTable', $table, $stub);
+    }
+
+    /**
+     * Get the console command arguments.
+     *
+     * @return array
+     */
+    protected function getOptions()
+    {
+        $type = strtolower($this->type);
+
+        return [
+            ['model', 'm', InputOption::VALUE_REQUIRED, 'The model that the ' . $type . ' applies to'],
+        ];
     }
 }
