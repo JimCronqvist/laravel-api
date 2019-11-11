@@ -21,6 +21,6 @@ class ApiResourceMakeCommand extends BaseResourceMakeCommand
      */
     protected function getStub()
     {
-        return __DIR__.'/stubs/resource.stub';
+        return config('api.stub_resource', __DIR__.'/stubs/resource.stub');
     }
 }

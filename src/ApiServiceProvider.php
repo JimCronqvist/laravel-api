@@ -28,7 +28,7 @@ class ApiServiceProvider extends BaseServiceProvider
     {
         // php artisan vendor:publish --tag=api
         $this->publishes([
-            //__DIR__.'/config/api.php' => config_path('api.php'),
+            __DIR__ . '/config/api.php' => config_path('api.php'),
             __DIR__ . '/Http/Controllers/stubs/ApiController.stub' => app_path('Http/Controllers/ApiController.php'),
             __DIR__ . '/Policies/stubs/Policy.stub' => app_path('Policies/Policy.php'),
             __DIR__ . '/Http/Requests/stubs/FormRequest.stub' => app_path('Http/Requests/FormRequest.php'),
@@ -76,7 +76,7 @@ class ApiServiceProvider extends BaseServiceProvider
     {
         // Map the User::class to UserPolicy::class, as that does not match the below naming structure
         // User.php is not located in the Models folder
-        Gate::policy('App\User', 'App\Policies\UserPolicy');
+        Gate::policy('App\User', config('api.namespace_policies', 'App\Policies') . '\UserPolicy');
 
         // Change the naming convention for Laravel to look for Policy classes (default does not assume a "Models" dir)
         Gate::guessPolicyNamesUsing(function($modelClass) {
@@ -132,6 +132,6 @@ class ApiServiceProvider extends BaseServiceProvider
      */
     public function register()
     {
-        //
+        $this->mergeConfigFrom(__DIR__.'/config/api.php', 'api');
     }
 }

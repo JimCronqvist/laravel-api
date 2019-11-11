@@ -12,7 +12,11 @@ trait GuessForModel
      */
     protected function guessPolicyClassFor($modelClass)
     {
-        return str_replace('App\Models', 'App\Policies', $modelClass) . 'Policy';
+        return str_replace(
+            config('api.namespace_models', 'App\Models'),
+            config('api.namespace_policies', 'App\Policies'),
+            $modelClass
+        ) . 'Policy';
     }
 
     /**
@@ -23,7 +27,11 @@ trait GuessForModel
      */
     protected function guessResourceClassFor($modelClass)
     {
-        return str_replace('App\Models', 'App\Http\Resources', $modelClass) . 'Resource';
+        return str_replace(
+            config('api.namespace_models', 'App\Models'),
+            config('api.namespace_resources', 'App\Http\Resources'),
+            $modelClass
+        ) . 'Resource';
     }
 
     /**
@@ -34,7 +42,11 @@ trait GuessForModel
      */
     protected function guessServiceClassFor($modelClass)
     {
-        return str_replace('App\Models', 'App\Services\Api', $modelClass) . 'Service';
+        return str_replace(
+            config('api.namespace_models', 'App\Models'),
+            config('api.namespace_services', 'App\Services\Api'),
+            $modelClass
+        ) . 'Service';
     }
 
     /**
@@ -45,7 +57,11 @@ trait GuessForModel
      */
     protected function guessFormRequestClassFor($modelClass)
     {
-        return str_replace('App\Models', 'App\Http\Requests', $modelClass) . 'Request';
+        return str_replace(
+            config('api.namespace_models', 'App\Models'),
+            config('api.namespace_requests', 'App\Http\Requests'),
+            $modelClass
+        ) . 'Request';
     }
 
     /**

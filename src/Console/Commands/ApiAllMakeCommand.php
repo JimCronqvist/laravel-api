@@ -43,7 +43,7 @@ class ApiAllMakeCommand extends Command
         foreach($models as $model) {
             if($model instanceof Pivot) continue;
 
-            $name = str_replace('App\Models\\', '', get_class($model));
+            $name = str_replace(config('api.namespace_models', 'App\Models') .'\\', '', get_class($model));
             $name = str_replace('App\User', 'User', $name); // Handle the default User class from Laravel
             $name = str_replace('\\', '/', $name);
 

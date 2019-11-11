@@ -21,6 +21,6 @@ class ApiRequestMakeCommand extends BaseRequestMakeCommand
      */
     protected function getStub()
     {
-        return __DIR__.'/stubs/request.stub';
+        return config('api.stub_request', __DIR__.'/stubs/request.stub');
     }
 }

@@ -67,9 +67,9 @@ class ApiControllerMakeCommand extends ControllerMakeCommand
     protected function getStub()
     {
         if($this->option('service')) {
-            return __DIR__ . '/stubs/controller.model.api.service.stub';
+            return config('api.stub_controller_service', __DIR__ . '/stubs/controller.model.api.service.stub');
         }
-        return __DIR__ . '/stubs/controller.model.api.stub';
+        return config('api.stub_controller', __DIR__ . '/stubs/controller.model.api.stub');
     }
 
     /**

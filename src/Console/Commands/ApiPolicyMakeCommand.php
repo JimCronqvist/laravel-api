@@ -21,7 +21,7 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
      */
     protected function getStub()
     {
-        return __DIR__.'/stubs/policy.stub';
+        return config('api.stub_policy', __DIR__.'/stubs/policy.stub');
     }
 
     /**
