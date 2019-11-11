@@ -3,7 +3,9 @@
 namespace Cronqvist\Api\Services\Helpers;
 
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Finder\SplFileInfo;
 
 class HelperService
@@ -38,5 +40,30 @@ class HelperService
             $models[] = new $modelClass();
         }
         return $models;
+    }
+
+    /**
+     * Get all tables matching a filter, example to get all log tables "*_log"
+     *
+     * @param string $filter
+     * @return array
+     */
+    public static function getAllTablesMatching($filter = '*')
+    {
+        $filter = $filter == '*' ? '' : str_replace('%', '', $filter);
+        if(Str::endsWith($filter, '*')) {
+            $filter = rtrim($filter, '*') . '%';
+        }
+        if(Str::startsWith($filter, '*')) {
+            $filter = '%' . ltrim($filter, '*');
+        }
+
+        $filter = preg_replace("/[^\w\-%]+/", "", $filter);
+        if(!empty($filter)) {
+            $filter = ' LIKE "' . str_replace('_', '\_', $filter) . '"';
+        }
+
+        $query = 'SHOW TABLES' . $filter . ';';
+        return array_map('reset', DB::select($query));
     }
 }
