@@ -27,6 +27,7 @@ class GenerateDoc
     protected function generateInfo()
     {
         return [
+            'version' => '1.0.0',
             'title' => 'REST API Documentation',
             'description' => trim('
                 This documentation is auto-generated according to the OpenAPI standard.
@@ -74,11 +75,8 @@ class GenerateDoc
 
                 $item = [
                     'summary' => $docBlock->getSummary(),
-                    'description' => $docBlock->getDescription(),
-                    'operationId' => $route['name'],
+                    'description' => (string) $docBlock->getDescription(),
                     'tags' => [$reflection->getNamespaceName()],
-                    'consumes' => ['application/json'], // POST/PUT for API endpoints only, filter somehow..
-                    'produces' => ['application/json'],
                     'parameters' => [
 
                     ],
@@ -136,12 +134,10 @@ class GenerateDoc
     {
         $array = [];
         $array['openapi'] = $this->openapi;
-        $array['host'] = 'localhost';
-        $array['schemas'] = ['https'];
-        $array['basepath'] = '/api';
+        $array['servers'] = [['url' => request()->getSchemeAndHttpHost()]];
         $array['info'] = $this->generateInfo();
         $array['paths'] = $this->generatePaths();
-        $array['definitions'] = [];
+        $array['definitions'] = new \stdClass();
 
         $array = $array + $this->generateSecurityDefinitions();
 

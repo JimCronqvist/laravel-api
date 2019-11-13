@@ -31,7 +31,6 @@ class ApiServiceProvider extends BaseServiceProvider
             __DIR__ . '/config/api.php' => config_path('api.php'),
             __DIR__ . '/Http/Controllers/stubs/ApiController.stub' => app_path('Http/Controllers/ApiController.php'),
             __DIR__ . '/Policies/stubs/Policy.stub' => app_path('Policies/Policy.php'),
-            __DIR__ . '/Http/Requests/stubs/FormRequest.stub' => app_path('Http/Requests/FormRequest.php'),
         ], 'api');
 
         if ($this->app->runningInConsole()) {
