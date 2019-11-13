@@ -34,6 +34,13 @@ abstract class ApiController extends BaseController
     protected $modelClass;
 
     /**
+     * Service class for the model
+     *
+     * @var object|null
+     */
+    protected $service;
+
+    /**
      * Enable automatic authorization for the resource actions with the use of the model policy
      *
      * @var bool
@@ -97,7 +104,11 @@ abstract class ApiController extends BaseController
     {
         $formRequest = $this->resolveFormRequestFor($this->getModelClass());
         $this->authorizeMethod('store');
-        $model = $this->getModelClass()::create($formRequest->validated());
+        if($this->service && method_exists($this->service, 'create')) {
+            $model = $this->service->create($formRequest->validated());
+        } else {
+            $model = $this->getModelClass()::create($formRequest->validated());
+        }
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
     }
@@ -145,7 +156,11 @@ abstract class ApiController extends BaseController
         $model = $this->getModelClass()::findOrFail($id);
         Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('update', $model);
-        $model->update($formRequest->validated());
+        if($this->service && method_exists($this->service, 'update')) {
+            $this->service->update($model, $formRequest->validated());
+        } else {
+            $model->update($formRequest->validated());
+        }
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
     }
@@ -164,7 +179,11 @@ abstract class ApiController extends BaseController
         $model = $this->getModelClass()::findOrFail($id);
         Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('destroy', $model);
-        $model->delete();
+        if($this->service && method_exists($this->service, 'delete')) {
+            $this->service->delete($model);
+        } else {
+            $model->delete();
+        }
         return response()->json(null, 204);
     }
 
