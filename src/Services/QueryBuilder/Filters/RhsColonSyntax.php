@@ -110,13 +110,13 @@ trait RhsColonSyntax
         }
         else if(Str::contains($this->operatorsMap[$operator], 'like')) {
             $value = sprintf('%s%s%s',
-                Str::contains($operator, 'ends') ? '' : '%',
+                !Str::contains($operator, 'starts') ? '%' : '',
                 str_replace(['_', '%'], ['\_', '\%'], $value),
-                Str::contains($operator, 'starts') ? '' : '%'
+                !Str::contains($operator, 'ends') ? '%' : ''
             );
         }
         else if(in_array($operator, ['btw', 'nbtw'])) {
-            $value = explode('|', $value, 2);
+            $value = explode(',', $value, 2);
             if(count($value) < 2) {
                 throw new ApiException('Between could not be parsed, two values has not been provided.');
             }
