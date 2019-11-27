@@ -49,7 +49,7 @@ trait TransformRelationToResource
                 return new $resource($relation);
             }
         } else if($relation instanceof Collection) {
-            if($resource = $this->getResourceClassFor($relation->first())) {
+            if($relation->count() && $resource = $this->getResourceClassFor($relation->first())) {
                 return $resource::collection($relation);
             }
         }
