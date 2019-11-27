@@ -75,4 +75,16 @@ trait GuessForModel
     {
         return app()->make($this->guessFormRequestClassFor($modelClass));
     }
+
+    /**
+     * Build a Policy class instance for the given model
+     *
+     * @param string $modelClass
+     * @return \Cronqvist\Api\Policies\Policy
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     */
+    protected function resolvePolicyFor($modelClass)
+    {
+        return app()->make($this->guessPolicyClassFor($modelClass));
+    }
 }

@@ -3,6 +3,8 @@
 namespace Cronqvist\Api\Services\OpenApi;
 
 use Cronqvist\Api\Exception\ApiException;
+use Cronqvist\Api\Http\Controllers\ApiController;
+use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
@@ -10,9 +12,12 @@ use Illuminate\Support\Str;
 use ReflectionClass;
 use Closure;
 use phpDocumentor\Reflection\DocBlockFactory;
+use Cronqvist\Api\Services\Helpers\AccessInstance;
 
 class GenerateDoc
 {
+    use GuessForModel;
+
     public $openapi = '3.0.0';
 
     protected $controllers = [];
@@ -68,27 +73,19 @@ class GenerateDoc
             $docBlock   = $this->getDocBlock($route['action']);
 
             foreach($route['method'] as $method) {
-                if(in_array($method, ['HEAD', 'OPTIONS'])) continue;
-                //if($method == 'PATCH') continue; // Do we want to show this one?
-
-                $protected = rand(0, 1);
+                if(in_array($method, ['HEAD', 'OPTIONS', 'PATCH'])) continue;
 
                 $item = [
                     'summary' => $docBlock->getSummary(),
                     'description' => (string) $docBlock->getDescription(),
                     'tags' => [$reflection->getNamespaceName()],
-                    'parameters' => [
-
-                    ],
+                    'parameters' => $this->getRouteParameters($route),
                     'responses' => [
                         200 => ['description' => 'OK'],
                         404 => ['description' => 'Model not found'],
                     ],
-
+                    'security' => $this->isRouteAllowingGuests($route) ? null : [['AccessToken' => []]],
                 ];
-                if($protected) {
-                    $item['security'] = [['AccessToken' => []]];
-                }
                 $array[$route['uri']][strtolower($method)] = $item;
             }
         }
@@ -97,12 +94,60 @@ class GenerateDoc
         return $array;
     }
 
+    protected function getRouteParameters(array $route)
+    {
+        $class = $this->splitAction($route['action'])['class'];
+        return [];
+    }
+
+    protected function isRouteAllowingGuests(array $route)
+    {
+        $class = $this->splitAction($route['action'])['class'];
+        $method = $this->splitAction($route['action'])['method'];
+        $controller = $this->controllers[$class];
+        $reflection = $this->reflections[$class];
+        $modelClass = $this->getModelClassFromRoute($route);
+
+        if($modelClass && class_exists($this->guessPolicyClassFor($modelClass))) {
+            $policy = $this->resolvePolicyFor($modelClass);
+            $allowGuests = AccessInstance::getProperty($policy, 'allowGuests');
+            $allowGuest = AccessInstance::call($controller, function() use($allowGuests, $method){
+                $method = $this->resourceAbilityMap()[$method] ?? $method;
+                return $allowGuests[$method] ?? false;
+            });
+            return $allowGuest;
+        }
+
+        return false;
+    }
+
+    protected function getModelClassFromRoute(array $route)
+    {
+        $controller = $this->controllers[$this->splitAction($route['action'])['class']];
+        if($controller instanceof ApiController) {
+            return (function(){
+                return $this->getModelClass();
+            })->call($controller);
+        }
+        return null;
+    }
+
+    protected function splitAction($action)
+    {
+        $split = explode('@', $action);
+        return [
+            'class' => $split[0],
+            'method' => $split[1],
+        ];
+    }
+
     /**
      *
      *
      * @param string $action
      * @return \phpDocumentor\Reflection\DocBlock
      * @throws \ReflectionException
+     * @throws ApiException
      */
 
     protected function getDocBlock($action)
