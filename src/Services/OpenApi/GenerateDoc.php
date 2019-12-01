@@ -238,14 +238,14 @@ class GenerateDoc
     }
 
     /**
-     * Filter the route by URI and / or name.
+     * Filter the routes by the 'api' middleware.
      *
      * @param  array  $route
      * @return array|null
      */
     protected function filterRoute(array $route)
     {
-        return Str::startsWith($route['uri'], '/api/') ? $route : null;
+        return in_array('api', explode(',', $route['middleware'])) ? $route : null;
     }
 
     /**
