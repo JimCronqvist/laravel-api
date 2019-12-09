@@ -7,7 +7,7 @@ use DummyFullResourceClass;
 use DummyFullModelClass;
 use DummyFullRequestClass;
 use DummyFullServiceClass;
-use Spatie\QueryBuilder\QueryBuilder;
+use Cronqvist\Api\Services\QueryBuilder\QueryBuilder;
 
 class DummyClass extends ApiController
 {
@@ -40,7 +40,7 @@ class DummyClass extends ApiController
     /**
      * Get the Builder instance used for the index and show actions.
      *
-     * @return \Spatie\QueryBuilder\QueryBuilder
+     * @return \Cronqvist\Api\Services\QueryBuilder\QueryBuilder
      */
     protected function getBuilder()
     {

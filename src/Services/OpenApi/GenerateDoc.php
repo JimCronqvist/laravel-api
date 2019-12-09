@@ -5,14 +5,18 @@ namespace Cronqvist\Api\Services\OpenApi;
 use Cronqvist\Api\Exception\ApiException;
 use Cronqvist\Api\Http\Controllers\ApiController;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
+use Cronqvist\Api\Services\QueryBuilder\Filters\AbstractFilterRhs;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use ReflectionClass;
 use Closure;
 use phpDocumentor\Reflection\DocBlockFactory;
 use Cronqvist\Api\Services\Helpers\AccessInstance;
+use Cronqvist\Api\Services\QueryBuilder\QueryBuilder;
 
 class GenerateDoc
 {
@@ -71,6 +75,7 @@ class GenerateDoc
             $controller = $this->controllers[$class];
             $reflection = $this->reflections[$class];
             $docBlock   = $this->getDocBlock($route['action']);
+            $uri        = $route['uri'];
 
             foreach($route['method'] as $method) {
                 if(in_array($method, ['HEAD', 'OPTIONS', 'PATCH'])) continue;
@@ -86,7 +91,7 @@ class GenerateDoc
                     ],
                     'security' => $this->isRouteAllowingGuests($route) ? null : [['AccessToken' => []]],
                 ];
-                $array[$route['uri']][strtolower($method)] = $item;
+                $array[$uri][strtolower($method)] = $item;
             }
         }
         //dd($array, $routeList);
@@ -97,7 +102,121 @@ class GenerateDoc
     protected function getRouteParameters(array $route)
     {
         $class = $this->splitAction($route['action'])['class'];
-        return [];
+        $method = $this->splitAction($route['action'])['method'];
+        $parameters = [];
+
+        // Named parameters from the route
+        foreach($route['parameters'] as $parameter) {
+            $parameters[] = [
+                'name' => $parameter,
+                'in' => 'path',
+                'description' => $parameter == 'id' ? 'ID of the resource' : Str::title($parameter),
+                'required' => true,
+                'schema' => [
+                    'type' => $parameter == 'id' || Str::endsWith($parameter, 'Id') ? 'integer' : 'string'
+                ],
+            ];
+        }
+
+        if($method == 'index' && ($controller = $this->controllers[$class]) instanceof ApiController) {
+            $builder = AccessInstance::call($controller, function(){
+                return $this->getBuilder();
+            });
+            if($builder instanceof QueryBuilder) {
+                $parameters = array_merge($parameters, $this->getParametersFromQueryBuilder($builder, $controller));
+            }
+        }
+
+        return $parameters;
+    }
+
+    protected function getParametersFromQueryBuilder(QueryBuilder $builder, ApiController $controller)
+    {
+        $sorts    = AccessInstance::getProperty($builder, 'allowedSorts');
+        $includes = AccessInstance::getProperty($builder, 'allowedIncludes');
+        $filters  = AccessInstance::getProperty($builder, 'allowedFilters');
+        $parameters = [];
+
+        // ?sort=
+        if($sorts) {
+            $sorts = $sorts->map(function($item) {
+                return AccessInstance::getProperty($item, 'name');
+            })->all();
+
+            $parameters[] = [
+                'name' => 'sort',
+                'in' => 'query',
+                'description' => 'Set sorting, prepend with a minus character for desc. Comma separate for multiple sorts. Allowed sorts: `' . implode('`, `', $sorts) . '`',
+                'required' => false,
+                'schema' => ['type' => 'string'],
+            ];
+        }
+
+        // ?include=
+        if($includes instanceof Collection && count($includes)) {
+            $includes = $includes->map(function($item) {
+                return AccessInstance::getProperty($item, 'name');
+            })->all();
+
+            $parameters[] = [
+                'name' => 'include',
+                'in' => 'query',
+                'description' => 'Relations to be included. Comma separated for multiple includes. Allowed includes: `' . implode('`, `', $includes) . '`',
+                'required' => false,
+                'schema' => ['type' => 'string'],
+            ];
+        }
+
+        // ?filter[x]=
+        if($filters instanceof Collection && count($filters)) {
+            $filters = $filters->map(function($item) {
+                if(AccessInstance::call($item, function(){
+                    return $this->filterClass instanceof AbstractFilterRhs;
+                })) {
+                    return [
+                        'name'      => AccessInstance::getProperty($item, 'name'),
+                        'operators' => AccessInstance::call($item, function(){
+                            return AccessInstance::getProperty($this->filterClass, 'allowedOperators');
+                        }),
+                    ];
+                }
+                return null;
+            })->filter()->all();
+
+            foreach($filters as $filter) {
+                $parameters[] = [
+                    'name' => 'filter['.$filter['name'].']',
+                    'in' => 'query',
+                    'description' => 'Apply the filter with \'?filter['.$filter['name'].']={operator}:{value}\'. Allowed operators: `' . implode('`, `', $filter['operators']) . '`',
+                    'required' => false,
+                    'schema' => ['type' => 'string'],
+                ];
+            }
+        }
+
+        // ?limit=
+        if($perPage = AccessInstance::getProperty($controller, 'perPage')) {
+            $parameters[] = [
+                'name' => 'limit',
+                'in' => 'query',
+                'description' => 'Lower the per page limit. You can never go higher than the default. Default: ' . $perPage,
+                'required' => false,
+                'schema' => ['type' => 'integer'],
+            ];
+        }
+
+        // ?page=
+        if($perPage) {
+            $parameters[] = [
+                'name' => 'page',
+                'in' => 'query',
+                'description' => 'Specify which page you want returned. Default: 1',
+                'required' => false,
+                'schema' => ['type' => 'integer'],
+            ];
+        }
+
+        return $parameters;
     }
 
     protected function isRouteAllowingGuests(array $route)
@@ -108,6 +227,7 @@ class GenerateDoc
         $reflection = $this->reflections[$class];
         $modelClass = $this->getModelClassFromRoute($route);
 
+        // A route using the ApiController
         if($modelClass && class_exists($this->guessPolicyClassFor($modelClass))) {
             $policy = $this->resolvePolicyFor($modelClass);
             $allowGuests = AccessInstance::getProperty($policy, 'allowGuests');
@@ -118,7 +238,12 @@ class GenerateDoc
             return $allowGuest;
         }
 
-        return false;
+        // Check if the 'auth' middleware is assigned to the route
+        if(in_array('auth', explode(',', $route['middleware']))) {
+            return false;
+        }
+
+        return true;
     }
 
     protected function getModelClassFromRoute(array $route)
@@ -213,6 +338,20 @@ class GenerateDoc
      */
     protected function getRouteInformation(Route $route)
     {
+        $parameters = [];
+        try {
+            $parameters = $route->parameterNames();
+        } catch (\LogicException $exception) {}
+
+        if(
+            count($parameters)
+            && in_array($route->getActionMethod(), ['show', 'update', 'destroy'])
+            && $route->getController() instanceof ApiController
+        ) {
+            $route->setUri(str_replace('{'.$parameters[0].'}', '{id}', $route->uri()));
+            $parameters[0] = 'id';
+        }
+
         return $this->filterRoute([
             'domain' => $route->domain(),
             'method' => $route->methods(),
@@ -220,6 +359,7 @@ class GenerateDoc
             'name'   => $route->getName(),
             'action' => ltrim($route->getActionName(), '\\'),
             'middleware' => $this->getMiddleware($route),
+            'parameters' => $parameters,
         ]);
     }
 
@@ -256,7 +396,13 @@ class GenerateDoc
      */
     protected function getMiddleware($route)
     {
-        return collect($route->gatherMiddleware())->map(function ($middleware) {
+        try {
+            $middleware = $route->gatherMiddleware();
+        } catch (BindingResolutionException $exception) {
+            return '';
+        }
+
+        return collect($middleware)->map(function ($middleware) {
             return $middleware instanceof Closure ? 'Closure' : $middleware;
         })->implode(',');
     }
