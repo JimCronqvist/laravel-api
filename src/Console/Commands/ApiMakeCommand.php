@@ -81,7 +81,7 @@ class ApiMakeCommand extends Command
         ]);
 
         $this->line('Please add the new routes in routes/api.php', 'important');
-        $this->line("Route::apiResource('".Str::kebab(Str::plural($name))."', '".$name."Controller');", 'code');
+        $this->line("Route::apiResource('".Str::kebab(Str::plural(basename($name)))."', '".$name."Controller');", 'code');
     }
 
     /**

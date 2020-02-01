@@ -79,7 +79,7 @@ class DummyClass extends ApiController
      */
     public function update(DummyModelClassRequest $request, DummyModelClass $DummyModelVariable)
     {
-        $this->authorizeMethod('update');
+        $this->authorizeMethod('update', $DummyModelVariable);
         $this->service->update($DummyModelVariable, $request->validated());
         return new DummyModelClassResource($DummyModelVariable);
     }
