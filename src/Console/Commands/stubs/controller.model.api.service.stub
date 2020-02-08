@@ -93,7 +93,7 @@ class DummyClass extends ApiController
      */
     public function destroy(DummyModelClass $DummyModelVariable)
     {
-        $this->authorizeMethod('destroy');
+        $this->authorizeMethod('destroy', $DummyModelVariable);
         $this->service->delete($DummyModelVariable);
         return response()->json(null, 204);
     }
