@@ -7,6 +7,7 @@ use Cronqvist\Api\Http\Controllers\ApiController;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Cronqvist\Api\Services\QueryBuilder\Filters\AbstractFilterRhs;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
@@ -27,10 +28,33 @@ class GenerateDoc
     protected $controllers = [];
     protected $reflections = [];
 
+    protected $router;
+    protected $request;
+    protected $orgRequest;
 
-    public function __construct(Router $router)
+    protected $actionMethods = [
+        'index'   => 'GET',
+        'show'    => 'GET',
+        'store'   => 'POST',
+        'update'  => 'PUT',
+        'destroy' => 'DELETE',
+    ];
+
+
+    public function __construct(Router $router, Request $request)
     {
         $this->router = $router;
+        $this->request = $request;
+        $this->orgRequest = clone $request;
+
+        $this->removeAfterResolvingCallbacks();
+    }
+
+    protected function removeAfterResolvingCallbacks()
+    {
+        AccessInstance::call(app(), function(){
+            $this->afterResolvingCallbacks = []; // Removes 'ValidatesWhenResolved' from the Container
+        });
     }
 
     protected function generateInfo()
@@ -65,7 +89,6 @@ class GenerateDoc
         $array = [];
         $routeList = $this->getRoutes();
 
-
         foreach($routeList as $route) {
             $class = Str::before($route['action'], '@');
             if(!in_array($class, $this->reflections)) {
@@ -85,10 +108,7 @@ class GenerateDoc
                     'description' => (string) $docBlock->getDescription(),
                     'tags' => [$reflection->getNamespaceName()],
                     'parameters' => $this->getRouteParameters($route),
-                    'responses' => [
-                        200 => ['description' => 'OK'],
-                        404 => ['description' => 'Model not found'],
-                    ],
+                    'responses' => $this->getResponses($route),
                     'security' => $this->isRouteAllowingGuests($route) ? null : [['AccessToken' => []]],
                 ];
                 $array[$uri][strtolower($method)] = $item;
@@ -99,11 +119,55 @@ class GenerateDoc
         return $array;
     }
 
+    protected function getResponses(array $route)
+    {
+        $action     = $this->splitAction($route['action'])['method'];
+        $httpMethod = $this->getActionHttpMethod($route);
+        $responses  = [];
+
+        if(in_array($httpMethod, ['GET', 'POST', 'PUT'])) {
+            $responses[200] = ['description' => 'OK'];
+        }
+        if(in_array($httpMethod, ['POST'])) {
+            $responses[201] = ['description' => 'Entity created'];
+        }
+        if(in_array($httpMethod, ['DELETE'])) {
+            $responses[204] = ['description' => 'Entity deleted'];
+        }
+        if(in_array($httpMethod, ['GET'])) {
+            $responses[400] = ['description' => 'Provided data is invalid'];
+        }
+        if(in_array($httpMethod, ['GET', 'POST', 'PUT', 'DELETE']) && !$this->isRouteAllowingGuests($route)) {
+            $responses[403] = ['description' => 'Not authorized'];
+        }
+        if(in_array($httpMethod, ['GET', 'PUT', 'DELETE']) && $action != 'index') {
+            $responses[404] = ['description' => 'Model not found'];
+        }
+        if(in_array($httpMethod, ['POST', 'PUT'])) {
+            $responses[422] = ['description' => 'Validation error'];
+        }
+        //$responses[500] = ['description' => 'Internal Server Error'];
+
+        return $responses;
+    }
+
+    protected function fakeMethod(string $method)
+    {
+        $this->request->setMethod($method);
+    }
+
+    protected function resetMethod()
+    {
+        $this->request->setMethod($this->orgRequest->getMethod());
+    }
+
     protected function getRouteParameters(array $route)
     {
         $class = $this->splitAction($route['action'])['class'];
         $method = $this->splitAction($route['action'])['method'];
         $parameters = [];
+
+        $this->fakeMethod($this->getActionHttpMethod($route));
 
         // Named parameters from the route
         foreach($route['parameters'] as $parameter) {
@@ -118,6 +182,7 @@ class GenerateDoc
             ];
         }
 
+        // Query parameters from the query builder
         if($method == 'index' && ($controller = $this->controllers[$class]) instanceof ApiController) {
             $builder = AccessInstance::call($controller, function(){
                 return $this->getBuilder();
@@ -127,7 +192,34 @@ class GenerateDoc
             }
         }
 
+        // Form fields from the FormRequest validation rules
+        if(in_array($method, ['store', 'update']) && ($controller = $this->controllers[$class]) instanceof ApiController) {
+            $formRequest = $this->resolveFormRequestFor($this->getModelClassFromRoute($route));
+            $rules = $formRequest->rules();
+
+            foreach($rules as $field => $rule) {
+                $split = explode('|', $rule);
+                $parameters[] = [
+                    'name' => $field,
+                    'in' => 'formData',
+                    'description' => 'Rules: ' . $rule,
+                    'required' => in_array('required', $split) && !in_array('sometimes', $split),
+                    'schema' => [
+                        'type' => in_array('integer', $split) ? 'integer' : (in_array('numeric', $split) ? 'number' : 'string')
+                    ]
+                ];
+            }
+        }
+
+        $this->resetMethod();
+
         return $parameters;
+    }
+
+    protected function getActionHttpMethod(array $route)
+    {
+        $method = $this->splitAction($route['action'])['method'];
+        return $this->actionMethods[$method] ?? 'GET';
     }
 
     protected function getParametersFromQueryBuilder(QueryBuilder $builder, ApiController $controller)
