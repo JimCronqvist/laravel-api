@@ -35,4 +35,15 @@ return [
     //'stub_request'            => app_path('stubs/request.stub'),
     //'stub_service'            => app_path('stubs/service.stub'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auth
+    |--------------------------------------------------------------------------
+    |
+    | Configure the url for the forgot password process, the {token} placeholder
+    | will automatically be replaced with the real token for the password reset.
+    |
+    */
+
+    'forgot_password_request_uri' => '/auth/reset?email={email}&token={token}'
 ];

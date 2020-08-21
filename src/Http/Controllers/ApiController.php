@@ -3,9 +3,10 @@
 namespace Cronqvist\Api\Http\Controllers;
 
 use Cronqvist\Api\Exception\ApiAuthorizationException;
-use Cronqvist\Api\Exception\ApiException;
+use Cronqvist\Api\Services\Auth\Utils;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,9 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\ValidationData;
 use Spatie\QueryBuilder\QueryBuilderRequest;
 use Exception;
 
@@ -254,8 +258,23 @@ abstract class ApiController extends BaseController
         try {
             return $this->baseAuthorize($ability, $arguments);
         } catch (AuthorizationException $exception) {
-            $exception = new ApiAuthorizationException(null, null, $exception);
-            $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $arguments);
+            if(auth('api')->user() === null) {
+                // Check if the token has expired or is just invalid, to provide a better error message.
+                $expired = false;
+                try {
+                    $jwt = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : null; // Passport modifies the request instance, access the global directly
+                    if(Str::startsWith($jwt, 'Bearer ')) {
+                        $jwt = Str::substr($jwt, 7);
+                    }
+                    $token = (new Parser())->parse($jwt);
+                    $expired = $token->getClaims()['exp']->validate(new ValidationData()) === false;
+                } catch (Exception $e) {}
+                $message = $expired ? 'Not authenticated, token expired.' : 'Not authenticated, token invalid.';
+                $exception = new AuthenticationException($message, ['api']);
+            } else {
+                $exception = new ApiAuthorizationException(null, null, $exception);
+                $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $arguments);
+            }
             throw $exception;
         }
     }

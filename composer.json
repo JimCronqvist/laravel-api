@@ -11,12 +11,12 @@
     }
   ],
   "require" : {
-    "php": "^7.2",
+    "php": "^7.3",
     "ext-json": "*",
-    "laravel/framework": "^6.0",
-    "laravel/passport": "^7.4",
-    "spatie/laravel-permission": "^3.0",
-    "spatie/laravel-query-builder": "^2.0",
+    "laravel/framework": "^7.0",
+    "laravel/passport": "^9.3",
+    "spatie/laravel-permission": "^3.2",
+    "spatie/laravel-query-builder": "^2.3",
     "phpdocumentor/reflection-docblock": "^4.3"
   },
   "minimum-stability": "dev",

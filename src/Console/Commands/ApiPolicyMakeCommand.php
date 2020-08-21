@@ -35,7 +35,7 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
     {
         if(!$this->option('model')) {
             $this->error('Not enough arguments (missing: "--model").');
-            return false;
+            return 0;
         }
 
         return parent::handle();

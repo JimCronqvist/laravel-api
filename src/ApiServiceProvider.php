@@ -9,6 +9,7 @@ use Cronqvist\Api\Console\Commands\ApiPolicyMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiResourceMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiRequestMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiServiceMakeCommand;
+use Cronqvist\Api\Http\Middleware\AccessTokenCookieMiddleware;
 use Cronqvist\Api\Http\Middleware\ApiGuardMiddleware;
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
@@ -60,10 +61,12 @@ class ApiServiceProvider extends BaseServiceProvider
         $router = $this->app['router'];
         $router->aliasMiddleware('api.guard', ApiGuardMiddleware::class);
         $router->aliasMiddleware('api.json', JsonMiddleware::class);
+        $router->aliasMiddleware('api.accessTokenCookie', AccessTokenCookieMiddleware::class);
 
         // Let the developer prepend the middleware by themselves instead
         //$router->prependMiddlewareToGroup('api', 'api.guard');
         //$router->prependMiddlewareToGroup('api', 'api.json');
+        //$router->prependMiddlewareToGroup('api', 'api.accessTokenCookie');
     }
 
     /**
