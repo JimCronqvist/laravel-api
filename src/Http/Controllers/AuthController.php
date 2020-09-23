@@ -14,25 +14,46 @@ class AuthController extends Controller
      */
     protected $userResourceClass = 'App\Http\Resources\UserResource';
 
+    /**
+     * Auth Service
+     *
+     * @var \Cronqvist\Api\Services\Auth\AuthService
+     */
+    protected $authService;
+
+
+    /**
+     * Constructor
+     *
+     * @param \Cronqvist\Api\Services\Auth\AuthService $authService
+     */
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
 
     /**
      * Login endpoint
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\Response
+     * @throws \Cronqvist\Api\Exception\ApiPassportException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function login()
     {
-        return (new AuthService())->login(request('email'), request('password'));
+        return $this->authService->login(request('email'), request('password'));
     }
 
     /**
      * Refresh token endpoint
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function refresh()
     {
-        return (new AuthService())->refresh(request()->cookie(AuthService::$refreshToken));
+        $class = get_class($this->authService);
+        $refreshTokenName = $class::refreshToken;
+        return $this->authService->refresh(request()->cookie($refreshTokenName));
     }
 
     /**
@@ -42,7 +63,7 @@ class AuthController extends Controller
      */
     public function user()
     {
-        $user = (new AuthService())->user();
+        $user = $this->authService->user();
         if(class_exists($this->userResourceClass)) {
             $this->userResourceClass::withoutWrapping();
             return new $this->userResourceClass($user);
@@ -58,18 +79,18 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        $auth = new AuthService();
-        return $auth->logout($auth->user());
+        return $this->authService->logout($this->authService->user());
     }
 
     /**
      * Send reset password email
      *
      * @return \Illuminate\Http\JsonResponse
+     * @throws \Cronqvist\Api\Exception\ApiException
      */
     public function sendResetLink()
     {
-        return (new AuthService())->sendPasswordResetLink(request()->input('email'));
+        return $this->authService->sendPasswordResetLink(request()->input('email'));
     }
 
     /**
@@ -79,7 +100,7 @@ class AuthController extends Controller
      */
     public function reset()
     {
-        return (new AuthService())->reset(
+        return $this->authService->reset(
             request()->input('email'),
             request()->input('token'),
             request()->input('password')

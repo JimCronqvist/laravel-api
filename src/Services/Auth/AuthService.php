@@ -85,7 +85,7 @@ class AuthService
 
         // Make sure a Password Client exists in the DB
         if(!$client) {
-            throw new ApiPassportException('Laravel Passport is not setup properly.');
+            throw new ApiPassportException('Laravel Passport is not setup properly. No password grant client exists.');
         }
 
         return [
@@ -137,7 +137,7 @@ class AuthService
             $response->setContent($content);
 
             // Create the access token as a cookie as well if we are supposed to
-            if(self::$useAccessTokenCookie === true) {
+            if(static::$useAccessTokenCookie === true) {
                 $response->cookie($this->makeAccessTokenCookie($content['access_token']));
             }
         }
@@ -175,7 +175,7 @@ class AuthService
         $minutes = (int) ceil(Carbon::now()->diffInSeconds($expire, false) / 60);
 
         return Cookie::make(
-            self::$refreshToken,
+            static::$refreshToken,
             $refreshToken,
             $minutes,
             $this->getRefreshRoutePath(),
@@ -199,7 +199,7 @@ class AuthService
         $minutes = (int) ceil(Carbon::now()->diffInSeconds($expire, false) / 60);
 
         return Cookie::make(
-            self::$accessToken,
+            static::$accessToken,
             $accessToken,
             $minutes,
             '/',
@@ -207,6 +207,35 @@ class AuthService
             request()->secure(),
             true
         );
+    }
+
+    /**
+     * Check if Passport is configured correctly
+     *
+     * @throws ApiPassportException
+     */
+    protected function checkPassportSetup()
+    {
+        // Check that passport encryption keys has been generated
+        [$publicKey, $privateKey] = [
+            Passport::keyPath('oauth-public.key'),
+            Passport::keyPath('oauth-private.key'),
+        ];
+        if(!is_readable($publicKey) || !is_readable($privateKey)) {
+            throw new ApiPassportException("Passport encryption keys are missing. 
+                Please run 'php artisan passport:install'");
+        }
+
+        // Check that the config/auth.php has been configured
+        if(config('auth.guards.api.driver') != 'passport') {
+            throw new ApiPassportException("The api guard driver in config/auth.php has not been set to 'passport'.");
+        }
+
+        // Ensure that the 'HasApiTokens' trait has been added to the User model
+        $userClass = config('auth.providers.users.model');
+        if(!in_array(HasApiTokens::class, class_uses_recursive($userClass))) {
+            throw new ApiPassportException("The trait 'HasApiTokens' is missing in '" . $userClass);
+        }
     }
 
     /**
@@ -220,6 +249,8 @@ class AuthService
      */
     public function login($username, $password, $scopes = '*')
     {
+        $this->checkPassportSetup();
+
         if(empty($username) || empty($password)) {
             throw new BadRequestHttpException('Invalid request. Username and Password must be provided.');
         }
@@ -256,7 +287,7 @@ class AuthService
 
         // Utilize a cache to handle race conditions, as a refresh token can only be refreshed one time.
         $key = 'refreshToken:' . $refreshToken;
-        $response = Cache::remember($key, self::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
+        $response = Cache::remember($key, static::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
             $data = $this->getOAuthParams('refresh_token') + ['refresh_token' => $refreshToken];
             return $this->processPassportAccessToken($this->requestPassportAccessToken($data));
         });
@@ -286,7 +317,7 @@ class AuthService
         $user = auth('api')->user();
 
         // If the model is using the spatie/permissions, load in the permissions to the response.
-        if(self::$includePermissionsInUserResponse &&  in_array(HasRoles::class, class_uses_recursive($user))) {
+        if(static::$includePermissionsInUserResponse && in_array(HasRoles::class, class_uses_recursive($user))) {
             $user->permissions;
         }
 
@@ -321,8 +352,8 @@ class AuthService
 
         return response()
             ->json(['message' => 'Successfully logged out'])
-            ->cookie(Cookie::forget(self::$accessToken))
-            ->cookie(Cookie::forget(self::$refreshToken, $this->getRefreshRoutePath()));
+            ->cookie(Cookie::forget(static::$accessToken))
+            ->cookie(Cookie::forget(static::$refreshToken, $this->getRefreshRoutePath()));
     }
 
     /**
