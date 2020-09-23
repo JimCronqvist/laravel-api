@@ -181,7 +181,8 @@ class AuthService
             $this->getRefreshRoutePath(),
             null,
             request()->secure(),
-            true
+            true,
+            config('auth.same_site', 'lax'),
         );
     }
 
@@ -205,7 +206,8 @@ class AuthService
             '/',
             null,
             request()->secure(),
-            true
+            true,
+            config('auth.same_site', 'lax'),
         );
     }
 
