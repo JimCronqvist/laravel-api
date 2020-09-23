@@ -182,7 +182,7 @@ class AuthService
             null,
             request()->secure(),
             true,
-            config('auth.same_site', 'lax'),
+            config('api.same_site', 'lax'),
         );
     }
 
@@ -207,7 +207,7 @@ class AuthService
             null,
             request()->secure(),
             true,
-            config('auth.same_site', 'lax'),
+            config('api.same_site', 'lax'),
         );
     }
 
