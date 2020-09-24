@@ -52,7 +52,7 @@ class AuthController extends Controller
     public function refresh()
     {
         $class = get_class($this->authService);
-        $refreshTokenName = $class::refreshToken;
+        $refreshTokenName = $class::$refreshToken;
         return $this->authService->refresh(request()->cookie($refreshTokenName));
     }
 
