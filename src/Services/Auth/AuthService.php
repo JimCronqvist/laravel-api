@@ -25,7 +25,6 @@ use Laravel\Passport\HasApiTokens;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Token;
 use Laravel\Passport\Passport;
-use Spatie\Permission\Traits\HasRoles;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -61,11 +60,11 @@ class AuthService
     public static $cacheRefreshTokenRequestsForSeconds = 15;
 
     /**
-     * Include the spatie/permissions 'permission' relation in the user endpoint response
+     * Define which relations to load for the user endpoint. To be able to utilize 'whenLoaded' in the UserResource.
      *
      * @var bool
      */
-    public static $includePermissionsInUserResponse = false;
+    public static $loadRelations = [];
 
 
     /**
@@ -318,9 +317,9 @@ class AuthService
     {
         $user = auth('api')->user();
 
-        // If the model is using the spatie/permissions, load in the permissions to the response.
-        if(static::$includePermissionsInUserResponse && in_array(HasRoles::class, class_uses_recursive($user))) {
-            $user->permissions;
+        // Load relations if specified
+        foreach(static::$loadRelations as $relation) {
+            $user->{$relation};
         }
 
         return $user;

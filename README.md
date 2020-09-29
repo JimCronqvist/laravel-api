@@ -32,6 +32,7 @@ protected $middlewareGroups = [
         ...
         'api.guard', // Will ensure that the 'api' guard is used
         'api.json', // Will ensure that all responses are returned as json
+        //'api.accessTokenCookie', // Will allow authentication by cookie
     ]
 ];
 ```
