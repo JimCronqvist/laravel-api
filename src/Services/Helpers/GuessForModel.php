@@ -2,8 +2,28 @@
 
 namespace Cronqvist\Api\Services\Helpers;
 
+use Illuminate\Support\Pluralizer;
+
 trait GuessForModel
 {
+    /**
+     * Guess the class for the given model. Not to be called directly.
+     *
+     * @param string $type
+     * @param string $modelClass
+     * @return string
+     */
+    protected function guessClassFor($type, $modelClass)
+    {
+        $plural = strtolower(Pluralizer::plural($type));
+        $modelNamespace = config('api.namespace_models', 'App\Models');
+        if($modelClass === 'App\\User') {
+            $modelNamespace = 'App';
+        }
+        $typeNamespace = config('api.namespace_' . strtolower($plural), 'App\\' . $plural);
+        return str_replace($modelNamespace, $typeNamespace, $modelClass) . $type;
+    }
+
     /**
      * Guess the Policy class for the given model
      *
@@ -12,11 +32,7 @@ trait GuessForModel
      */
     protected function guessPolicyClassFor($modelClass)
     {
-        return str_replace(
-            config('api.namespace_models', 'App\Models'),
-            config('api.namespace_policies', 'App\Policies'),
-            $modelClass
-        ) . 'Policy';
+        return $this->guessClassFor('Policy', $modelClass);
     }
 
     /**
@@ -27,11 +43,7 @@ trait GuessForModel
      */
     protected function guessResourceClassFor($modelClass)
     {
-        return str_replace(
-            config('api.namespace_models', 'App\Models'),
-            config('api.namespace_resources', 'App\Http\Resources'),
-            $modelClass
-        ) . 'Resource';
+        return $this->guessClassFor('Resource', $modelClass);
     }
 
     /**
@@ -42,11 +54,7 @@ trait GuessForModel
      */
     protected function guessServiceClassFor($modelClass)
     {
-        return str_replace(
-            config('api.namespace_models', 'App\Models'),
-            config('api.namespace_services', 'App\Services\Api'),
-            $modelClass
-        ) . 'Service';
+        return $this->guessClassFor('Service', $modelClass);
     }
 
     /**
@@ -57,11 +65,7 @@ trait GuessForModel
      */
     protected function guessFormRequestClassFor($modelClass)
     {
-        return str_replace(
-            config('api.namespace_models', 'App\Models'),
-            config('api.namespace_requests', 'App\Http\Requests'),
-            $modelClass
-        ) . 'Request';
+        return $this->guessClassFor('Request', $modelClass);
     }
 
     /**
