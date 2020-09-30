@@ -8,6 +8,7 @@ use Cronqvist\Api\Exception\ApiPassportException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,14 +21,18 @@ use Laminas\Diactoros\ResponseFactory;
 use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\StreamFactory;
 use Laminas\Diactoros\UploadedFileFactory;
+use Laravel\Passport\Bridge\User;
 use Laravel\Passport\Exceptions\OAuthServerException;
 use Laravel\Passport\HasApiTokens;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Token;
 use Laravel\Passport\Passport;
+use League\OAuth2\Server\AuthorizationServer;
+use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\ResourceServer;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Laravel\Passport\Bridge\UserRepository;
 
 class AuthService
 {
@@ -430,5 +435,45 @@ class AuthService
         $leagueServer = app()->make(ResourceServer::class);
         /** @var $leagueServer ResourceServer */
         $leagueServer->validateAuthenticatedRequest($psr); // See: BearerTokenValidator::validateAuthorization()
+    }
+
+    /**
+     * Perform a login for a specific user, which returns the normal access and refresh token, etc.
+     *
+     * @param Authenticatable $user
+     * @param string $scopes
+     * @return Response
+     * @throws ApiPassportException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     */
+    public function loginAs(Authenticatable $user, $scopes = '*')
+    {
+        // Fake the expected UserRepository to just return the user we set, rather than fetching by credentials.
+        $fakeUserRepository = new class(app()->make(Hasher::class)) extends UserRepository {
+            protected $user;
+            public function setUser(Authenticatable $user)
+            {
+                $this->user = $user;
+                return $this;
+            }
+            public function getUserEntityByUserCredentials($username, $password, $grantType, ClientEntityInterface $clientEntity)
+            {
+                return new User($this->user->getAuthIdentifier());
+            }
+        };
+
+        // Hijack laravel/passport a bit...
+        app()->forgetInstance(AuthorizationServer::class);
+        app()->instance(UserRepository::class, $fakeUserRepository->setUser($user));
+        app()->make(AuthorizationServer::class);
+
+        // Perform the login with dummy credentials. The user has already been provided by the fakeUserProvider.
+        $response = $this->login('x', 'y', $scopes);
+
+        // Cleaning up, just in case the AuthorizationServer is going to be used further in this request (not likely)
+        app()->forgetInstance(UserRepository::class);
+        app()->forgetInstance(AuthorizationServer::class);
+
+        return $response;
     }
 }
