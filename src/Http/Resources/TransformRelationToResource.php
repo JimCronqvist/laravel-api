@@ -37,7 +37,7 @@ trait TransformRelationToResource
     /**
      * Transform a relation with its own related resource class
      *
-     * @param $relation
+     * @param string $relation
      * @return mixed
      */
     protected function transformRelation($relation)
@@ -59,6 +59,7 @@ trait TransformRelationToResource
     /**
      * Get the resource class based on the model, if it exist.
      *
+     * @param \Illuminate\Database\Eloquent\Model $model
      * @return string
      */
     protected function getResourceClassFor(Model $model)

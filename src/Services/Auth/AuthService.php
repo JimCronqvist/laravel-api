@@ -25,6 +25,7 @@ use Laravel\Passport\HasApiTokens;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Token;
 use Laravel\Passport\Passport;
+use League\OAuth2\Server\ResourceServer;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -95,6 +96,27 @@ class AuthService
     }
 
     /**
+     * Convert the Laravel request to a PSR-7 implementation which is compatible with the League OAuth2 library
+     *
+     * @param Request $request
+     * @return \Psr\Http\Message\ServerRequestInterface
+     */
+    protected function makeRequestPsr7(Request $request)
+    {
+        // See: CheckClientCredentials::handle() from Passport
+        // See: TokenGuard::getPsrRequestViaBearerToken() from Passport
+
+        $psr = (new PsrHttpFactory(
+            new ServerRequestFactory,
+            new StreamFactory,
+            new UploadedFileFactory,
+            new ResponseFactory
+        ))->createRequest($request);
+
+        return $psr;
+    }
+
+    /**
      * Get a token from Laravel Passport
      *
      * @param array $data
@@ -108,12 +130,7 @@ class AuthService
         $passportController = app()->make(AccessTokenController::class);
         /** @var $passportController AccessTokenController */
         $request = Request::create('/oauth/token', 'POST', $data);
-        $psr = (new PsrHttpFactory(
-            new ServerRequestFactory,
-            new StreamFactory,
-            new UploadedFileFactory,
-            new ResponseFactory
-        ))->createRequest($request); // See: CheckClientCredentials::handle() from Passport
+        $psr = $this->makeRequestPsr7($request);
         return $passportController->issueToken($psr);
     }
 
@@ -405,5 +422,13 @@ class AuthService
         return response()->json([
             'message' => $response
         ]);
+    }
+
+    public static function ensureAuthenticated()
+    {
+        $psr = (new static())->makeRequestPsr7(request());
+        $leagueServer = app()->make(ResourceServer::class);
+        /** @var $leagueServer ResourceServer */
+        $leagueServer->validateAuthenticatedRequest($psr); // See: BearerTokenValidator::validateAuthorization()
     }
 }

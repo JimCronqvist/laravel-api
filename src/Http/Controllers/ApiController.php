@@ -132,12 +132,26 @@ abstract class ApiController extends BaseController
                 'joins', 'wheres', 'groups', 'havings', 'orders', 'offset',
                 'unions', 'unionLimit', 'unionOffset', 'unionOrders'
             ]));
+
+            // Empty the eager loads and add them after we are sure that we are authorized for this method.
+            // Prevents issues if for example the auth object is used in relations, and avoids unnecesary queries if
+            // not authorized.
+            $eagerLoads = $builder->getEagerLoads();
+            $builder->setEagerLoads([]);
+
             $model = $builder->findOrFail($id);
         } else {
             $model = $this->getModelClass()::findOrFail($id);
         }
         Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         $this->authorizeMethod('show', $model);
+
+        // Now that we are authorized, eager load any relations that is supposed to be included
+        if(!empty($eagerLoads)) {
+            $builder->setEagerLoads($eagerLoads);
+            $builder->eagerLoadRelations([$model]);
+        }
+
         $model = $this->transformModel($model);
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
