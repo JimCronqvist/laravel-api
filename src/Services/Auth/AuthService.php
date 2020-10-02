@@ -240,13 +240,15 @@ class AuthService
     protected function checkPassportSetup()
     {
         // Check that passport encryption keys has been generated
-        [$publicKey, $privateKey] = [
-            Passport::keyPath('oauth-public.key'),
-            Passport::keyPath('oauth-private.key'),
-        ];
-        if(!is_readable($publicKey) || !is_readable($privateKey)) {
-            throw new ApiPassportException("Passport encryption keys are missing. 
+        if(empty(config('passport.private_key')) || empty(config('passport.public_key'))) {
+            [$publicKey, $privateKey] = [
+                Passport::keyPath('oauth-public.key'),
+                Passport::keyPath('oauth-private.key'),
+            ];
+            if(!is_readable($publicKey) || !is_readable($privateKey)) {
+                throw new ApiPassportException("Passport encryption keys are missing. 
                 Please run 'php artisan passport:install'");
+            }
         }
 
         // Check that the config/auth.php has been configured
