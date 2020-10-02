@@ -90,7 +90,9 @@ class AuthService
 
         // Make sure a Password Client exists in the DB
         if(!$client) {
-            throw new ApiPassportException('Laravel Passport is not setup properly. No password grant client exists.');
+            throw new ApiPassportException("Laravel Passport is not setup properly. No password grant client exists.
+                Run 'php artisan passport:client --password' to set it up.
+            ");
         }
 
         return [
