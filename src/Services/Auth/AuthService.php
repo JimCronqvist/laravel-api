@@ -8,6 +8,7 @@ use Cronqvist\Api\Exception\ApiPassportException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
 use Illuminate\Http\Request;
@@ -130,7 +131,6 @@ class AuthService
      * @return Response
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
-
     protected function requestPassportAccessToken(array $data)
     {
         // Send an internal API request to get an access token
@@ -205,6 +205,7 @@ class AuthService
             null,
             request()->secure(),
             true,
+            false,
             config('api.same_site', 'lax'),
         );
     }
@@ -230,6 +231,7 @@ class AuthService
             null,
             request()->secure(),
             true,
+            false,
             config('api.same_site', 'lax'),
         );
     }
@@ -312,12 +314,23 @@ class AuthService
             throw new BadRequestHttpException('Invalid request. No refresh token provided.');
         }
 
-        // Utilize a cache to handle race conditions, as a refresh token can only be refreshed one time.
         $key = 'refreshToken:' . $refreshToken;
-        $response = Cache::remember($key, static::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
-            $data = $this->getOAuthParams('refresh_token') + ['refresh_token' => $refreshToken];
-            return $this->processPassportAccessToken($this->requestPassportAccessToken($data));
-        });
+        $refresh = function($key, $refreshToken) {
+            return Cache::remember($key, static::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
+                $data = $this->getOAuthParams('refresh_token') + ['refresh_token' => $refreshToken];
+                return $this->processPassportAccessToken($this->requestPassportAccessToken($data));
+            });
+        };
+
+        // Utilize atomic lock and cache to handle race conditions, as a refresh token can only be refreshed one time.
+        if(Cache::getStore() instanceof LockProvider) {
+            $lock = Cache::lock('lock:' . $key);
+            $response = $lock->block(10, function() use($refresh, $key, $refreshToken) {
+                return $refresh($key, $refreshToken);
+            });
+        } else {
+            $response = $refresh($key, $refreshToken);
+        }
 
         // Update the expires_in, as it could have come from the cache and be a few seconds off because of that.
         /** @var $response Response */
