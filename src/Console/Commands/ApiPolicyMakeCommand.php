@@ -57,6 +57,18 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
     }
 
     /**
+     * Get the model for the guard's user provider.
+     *
+     * @return string|null
+     */
+    protected function userProviderModel()
+    {
+        $config = $this->laravel['config'];
+        $guard = 'api';
+        return $config->get('auth.providers.'.$config->get('auth.guards.'.$guard.'.provider').'.model');
+    }
+
+    /**
      * Get the console command arguments.
      *
      * @return array
