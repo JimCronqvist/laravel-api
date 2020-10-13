@@ -4,6 +4,7 @@ namespace Cronqvist\Api;
 
 use Cronqvist\Api\Console\Commands\ApiAllMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiControllerMakeCommand;
+use Cronqvist\Api\Console\Commands\ApiCreatePersonalAccessToken;
 use Cronqvist\Api\Console\Commands\ApiMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiPolicyMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiResourceMakeCommand;
@@ -43,6 +44,7 @@ class ApiServiceProvider extends BaseServiceProvider
                 ApiResourceMakeCommand::class,
                 ApiRequestMakeCommand::class,
                 ApiServiceMakeCommand::class,
+                ApiCreatePersonalAccessToken::class,
             ]);
         }
 
