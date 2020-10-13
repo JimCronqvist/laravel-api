@@ -13,6 +13,7 @@ use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -82,13 +83,14 @@ class AuthService
     {
         // Find the first available Password Client
         $client = DB::table('oauth_clients')
-            ->where('password_client', true)
+            ->where('password_client', 1)
+            ->where('revoked', 0)
             ->first();
 
         // Make sure a Password Client exists in the DB
         if(!$client) {
-            throw new ApiPassportException("Laravel Passport is not setup properly. No password grant client exists.
-                Run 'php artisan passport:client --password' to set it up.
+            throw new ApiPassportException("Laravel Passport is not setup. No password grant client exists.
+                Run 'php artisan passport:client --password' to create one.
             ");
         }
 
@@ -504,6 +506,28 @@ class AuthService
         if(!method_exists($user, 'createToken')) {
             throw new ApiPassportException("The trait 'HasApiTokens' is missing in '" . get_class($user));
         }
+
+        // Find the first available Password Client
+        $client = DB::table('oauth_clients')
+            ->where('personal_access_client', 1)
+            ->where('revoked', 0)
+            ->first();
+
+        // Make sure a Password Client exists in the DB
+        if(!$client) {
+            throw new ApiPassportException("Laravel Passport is not setup. No Personal Access Client exists.
+                Run 'php artisan passport:client --personal' to create one.
+            ");
+        }
+
+        // Passport requires two env variables to be set, if they are not, we will find them and set them instead.
+        if(empty(config('passport.personal_access_client.secret'))) {
+            Config::set('passport.personal_access_client', [
+                'id' => $client->id,
+                'secret' => $client->secret,
+            ]);
+        }
+
         return $user->createToken($name, $scopes)->accessToken;
     }
 }
