@@ -499,7 +499,7 @@ class AuthService
      * @return string
      * @throws ApiPassportException
      */
-    public function createPersonalAccessToken(Authenticatable $user, $name, $scopes = '*')
+    public function createPersonalAccessToken(Authenticatable $user, $name, $scopes = [])
     {
         if(!method_exists($user, 'createToken')) {
             throw new ApiPassportException("The trait 'HasApiTokens' is missing in '" . get_class($user));
