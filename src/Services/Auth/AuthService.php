@@ -489,4 +489,21 @@ class AuthService
 
         return $response;
     }
+
+    /**
+     * Create a personal access token via Passport
+     *
+     * @param Authenticatable $user
+     * @param string $name
+     * @param string|array $scopes
+     * @return string
+     * @throws ApiPassportException
+     */
+    public function createPersonalAccessToken(Authenticatable $user, $name, $scopes = '*')
+    {
+        if(!method_exists($user, 'createToken')) {
+            throw new ApiPassportException("The trait 'HasApiTokens' is missing in '" . get_class($user));
+        }
+        return $user->createToken($name, $scopes)->accessToken;
+    }
 }
