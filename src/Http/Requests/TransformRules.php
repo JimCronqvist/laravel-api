@@ -24,9 +24,9 @@ trait TransformRules
      */
     protected function disableInputValidationForNow()
     {
-        if(App::environment('production')) {
+        if(!App::environment('local')) {
             $class = get_class($this);
-            throw new ApiException('Input validation is disabled, this is not allowed in production! In: ' . $class);
+            throw new ApiException('Input validation is disabled. This is not allowed in non-local environments! In: ' . $class);
         }
 
         $rules = [];
