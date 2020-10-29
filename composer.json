@@ -17,7 +17,7 @@
     "laravel/passport": "^10.0.1",
     "spatie/laravel-permission": "^3.2",
     "spatie/laravel-query-builder": "^2.3",
-    "phpdocumentor/reflection-docblock": "^4.3"
+    "phpdocumentor/reflection-docblock": "^4.3|^5.0"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
