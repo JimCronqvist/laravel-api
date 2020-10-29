@@ -134,16 +134,17 @@ abstract class ApiController extends BaseController
             ]));
 
             // Empty the eager loads and add them after we are sure that we are authorized for this method.
-            // Prevents issues if for example the auth object is used in relations, and avoids unnecesary queries if
+            // Prevents issues if for example the auth object is used in relations, and avoids unnecessary queries if
             // not authorized.
             $eagerLoads = $builder->getEagerLoads();
             $builder->setEagerLoads([]);
 
             $model = $builder->findOrFail($id);
+            Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         } else {
-            $model = $this->getModelClass()::findOrFail($id);
+            $model = $this->getModelById($id);
         }
-        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+
         $this->authorizeMethod('show', $model);
 
         // Now that we are authorized, eager load any relations that is supposed to be included
@@ -155,6 +156,20 @@ abstract class ApiController extends BaseController
         $model = $this->transformModel($model);
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
+    }
+
+    /**
+     * Get the model based on an ID
+     *
+     * @param int $id
+     * @return \Illuminate\Database\Eloquent\Model
+     * @throws Exception
+     */
+    protected function getModelById(int $id)
+    {
+        $model = $this->getModelClass()::findOrFail($id);
+        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+        return $model;
     }
 
     /**
@@ -171,8 +186,7 @@ abstract class ApiController extends BaseController
     {
         /** @var $model \Illuminate\Database\Eloquent\Model */
         $formRequest = $this->resolveFormRequestFor($this->getModelClass());
-        $model = $this->getModelClass()::findOrFail($id);
-        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+        $model = $this->getModelById($id);
         $this->authorizeMethod('update', $model);
         if($this->service && method_exists($this->service, 'update')) {
             $this->service->update($model, $formRequest->validated());
@@ -194,8 +208,7 @@ abstract class ApiController extends BaseController
     protected function defaultDestroy(int $id)
     {
         /** @var $model \Illuminate\Database\Eloquent\Model */
-        $model = $this->getModelClass()::findOrFail($id);
-        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+        $model = $this->getModelById($id);
         $this->authorizeMethod('destroy', $model);
         if($this->service && method_exists($this->service, 'delete')) {
             $this->service->delete($model);

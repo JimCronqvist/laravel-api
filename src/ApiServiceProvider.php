@@ -13,7 +13,10 @@ use Cronqvist\Api\Console\Commands\ApiServiceMakeCommand;
 use Cronqvist\Api\Http\Middleware\AccessTokenCookieMiddleware;
 use Cronqvist\Api\Http\Middleware\ApiGuardMiddleware;
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
+use Cronqvist\Api\Services\Helpers\AccessInstance;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
+use Illuminate\Routing\PendingResourceRegistration;
+use Illuminate\Routing\ResourceRegistrar;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
@@ -50,6 +53,7 @@ class ApiServiceProvider extends BaseServiceProvider
 
         $this->registerMiddlewareAliases();
         $this->registerPolicies();
+        $this->registerRouterMacro();
     }
 
     /**
@@ -137,5 +141,35 @@ class ApiServiceProvider extends BaseServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__.'/config/api.php', 'api');
+    }
+
+    /**
+     * Register a router macro to enable "Route::apiResource('resource', 'Controller')->withMediaRoutes();".
+     *
+     * @return void
+     */
+    public function registerRouterMacro()
+    {
+        $router = $this->app['router'];
+        PendingResourceRegistration::macro('withMediaRoutes', function(array $options = []) use($router) {
+            $only = ['index', 'show', 'store', 'destroy'];
+            if(isset($options['except'])) {
+                $only = array_diff($only, (array) $options['except']);
+            }
+
+            $pending = $router->resource($this->name . '.media', $this->controller, array_merge([
+                'only' => $only
+            ], $options)); // + ['parameters' => ['media' => 'media']]
+
+            AccessInstance::call($pending, function() use($router) {
+                $this->registrar = new class($router) extends ResourceRegistrar {
+                    protected function getResourceAction($resource, $controller, $method, $options)
+                    {
+                        return parent::getResourceAction($resource, $controller, 'media' . ucfirst($method), $options);
+                    }
+                };
+            });
+            return $pending;
+        });
     }
 }
