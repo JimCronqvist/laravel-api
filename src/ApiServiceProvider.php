@@ -152,7 +152,7 @@ class ApiServiceProvider extends BaseServiceProvider
     {
         $router = $this->app['router'];
         PendingResourceRegistration::macro('withMediaRoutes', function(array $options = []) use($router) {
-            $only = ['index', 'show', 'store', 'destroy'];
+            $only = ['index', 'show', 'store', 'update', 'destroy'];
             if(isset($options['except'])) {
                 $only = array_diff($only, (array) $options['except']);
             }
