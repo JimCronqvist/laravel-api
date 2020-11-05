@@ -17,6 +17,7 @@ use Cronqvist\Api\Services\Helpers\AccessInstance;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Routing\ResourceRegistrar;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
@@ -150,6 +151,7 @@ class ApiServiceProvider extends BaseServiceProvider
      */
     public function registerRouterMacro()
     {
+        /** @var \Illuminate\Routing\Router $router */
         $router = $this->app['router'];
         PendingResourceRegistration::macro('withMediaRoutes', function(array $options = []) use($router) {
             $only = ['index', 'show', 'store', 'update', 'destroy'];
