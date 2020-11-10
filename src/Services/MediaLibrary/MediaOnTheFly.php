@@ -120,7 +120,7 @@ class MediaOnTheFly
     protected function perform()
     {
         $cacheDir = $this->getCacheDir();
-        $localOriginalFile = $this->media->getPath() . $this->media->file_name;
+        $localOriginalFile = $this->media->getPath();
 
         if(!$this->isDiskDriverLocal()) {
             $localOriginalFile = $cacheDir . $this->media->uuid . '.' . strtolower($this->media->getExtensionAttribute());
