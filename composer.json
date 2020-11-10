@@ -19,6 +19,12 @@
     "spatie/laravel-query-builder": "^2.3",
     "phpdocumentor/reflection-docblock": "^4.3|^5.0"
   },
+  "suggest": {
+    "spatie/laravel-medialibrary": "Required to use Media functionality"
+  },
+  "conflict": {
+    "spatie/laravel-medialibrary": "<9.0.0"
+  },
   "minimum-stability": "dev",
   "prefer-stable": true,
   "autoload": {
