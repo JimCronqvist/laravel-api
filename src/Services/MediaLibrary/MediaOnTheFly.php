@@ -113,7 +113,7 @@ class MediaOnTheFly
     {
         $cacheDir = $this->getCacheDir();
         if(!File::isDirectory($cacheDir)) {
-            File::makeDirectory($cacheDir);
+            File::makeDirectory($cacheDir, 0755, true);
         }
     }
 
