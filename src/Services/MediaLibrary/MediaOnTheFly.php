@@ -86,7 +86,7 @@ class MediaOnTheFly
         return '__' . trim($string, '_');
     }
 
-    protected function getCacheDir()
+    public static function getCacheDir()
     {
         $cacheDir = config('media-library.cache_directory_path') ?? storage_path('media-library/cache');
         return '/' . trim($cacheDir, '/') . '/';
@@ -111,7 +111,7 @@ class MediaOnTheFly
 
     protected function ensureCacheDirExists()
     {
-        $cacheDir = $this->getCacheDir();
+        $cacheDir = static::getCacheDir();
         if(!File::isDirectory($cacheDir)) {
             File::makeDirectory($cacheDir, 0755, true);
         }
@@ -119,7 +119,7 @@ class MediaOnTheFly
 
     protected function perform()
     {
-        $cacheDir = $this->getCacheDir();
+        $cacheDir = static::getCacheDir();
         $localOriginalFile = $this->media->getPath();
 
         if(!$this->isDiskDriverLocal()) {

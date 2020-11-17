@@ -6,6 +6,7 @@ use Cronqvist\Api\Console\Commands\ApiAllMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiControllerMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiCreatePersonalAccessToken;
 use Cronqvist\Api\Console\Commands\ApiMakeCommand;
+use Cronqvist\Api\Console\Commands\ApiMediaCacheClean;
 use Cronqvist\Api\Console\Commands\ApiPolicyMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiResourceMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiRequestMakeCommand;
@@ -17,7 +18,6 @@ use Cronqvist\Api\Services\Helpers\AccessInstance;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Routing\ResourceRegistrar;
-use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
@@ -49,6 +49,7 @@ class ApiServiceProvider extends BaseServiceProvider
                 ApiRequestMakeCommand::class,
                 ApiServiceMakeCommand::class,
                 ApiCreatePersonalAccessToken::class,
+                ApiMediaCacheClean::class,
             ]);
         }
 
