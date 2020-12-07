@@ -43,7 +43,7 @@ class ApiControllerMakeCommand extends ControllerMakeCommand
      */
     public function option($key = null)
     {
-        if($key == 'model') return 'Models/'.str_replace('Controller', '', $this->getNameInput());
+        if($key == 'model') return str_replace('Controller', '', $this->getNameInput());
         if($key == 'api') return true;
         return parent::option($key);
     }
@@ -87,7 +87,7 @@ class ApiControllerMakeCommand extends ControllerMakeCommand
         if($this->option('service')) {
             $this->call('make:apiService', [
                 'name' => $name . 'Service',
-                '-m' => 'Models/' . $name,
+                '-m' => $name,
             ]);
         }
     }

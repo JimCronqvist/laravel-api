@@ -44,7 +44,7 @@ class ApiMakeCommand extends Command
         // User model, seeder and factory is created by Laravel by default
         if($name != 'User') {
             $this->call('make:model', [
-                'name' => 'Models/'.$name,
+                'name' => $name,
                 '-m' => true
             ]);
 
@@ -60,7 +60,7 @@ class ApiMakeCommand extends Command
             if($this->option('factory')) {
                 $this->call('make:factory', [
                     'name' => $name.'Factory',
-                    '--model' => 'Models/'.$name
+                    '--model' => $name
                 ]);
             }
         }
@@ -77,11 +77,15 @@ class ApiMakeCommand extends Command
         ]);
         $this->call('make:apiPolicy', [
             'name' => Str::singular($name).'Policy',
-            '--model' => ($name === 'User' ? 'User' : 'Models/'.$name)
+            '--model' => ($name === 'User' ? 'User' : $name)
         ]);
 
         $this->line('Please add the new routes in routes/api.php', 'important');
-        $this->line("Route::apiResource('".Str::kebab(Str::plural(basename($name)))."', '".$name."Controller');", 'code');
+        $this->line("Route::apiResource('"
+            . Str::kebab(Str::plural(basename($name)))
+            . "', '"
+            . str_replace('/', '\\', $name) ."Controller');", 'code'
+        );
     }
 
     /**
