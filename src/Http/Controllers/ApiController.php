@@ -131,7 +131,7 @@ abstract class ApiController extends BaseController
             $builder->setQuery($builder->getQuery()->cloneWithout([
                 'joins', 'wheres', 'groups', 'havings', 'orders', 'offset',
                 'unions', 'unionLimit', 'unionOffset', 'unionOrders'
-            ]));
+            ])->cloneWithoutBindings(['join', 'where', 'groupBy', 'having', 'order', 'union', 'unionOrder']));
 
             // Empty the eager loads and add them after we are sure that we are authorized for this method.
             // Prevents issues if for example the auth object is used in relations, and avoids unnecessary queries if
