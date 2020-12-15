@@ -17,11 +17,17 @@ class MediaOnTheFly
     protected $media;
     protected $deleteAfterSend = true;
     protected $manipulations;
+    protected $options = [];
 
     public function __construct(Media $media)
     {
         $this->media = $media;
-        $this->manipulations = $this->parseManipulationsFromRequest();
+    }
+
+    public function setOptions(array $options)
+    {
+        $this->options = $options;
+        return $this;
     }
 
     protected function rules()
@@ -36,9 +42,9 @@ class MediaOnTheFly
         ];
     }
 
-    protected function getValidatedOptionsFromRequest()
+    protected function getValidatedOptions()
     {
-        $query = request()->query();
+        $query = $this->options + request()->query();
         try {
             $validated = Validator::make($query, $this->rules())->validate();
         } catch (ValidationException $e) {
@@ -49,9 +55,9 @@ class MediaOnTheFly
         return $validated;
     }
 
-    protected function parseManipulationsFromRequest()
+    protected function generateManipulations()
     {
-        $options = $this->getValidatedOptionsFromRequest();
+        $options = $this->getValidatedOptions();
 
         $manipulations = new Manipulations();
         if(isset($options['width'], $options['height'])) {
@@ -119,6 +125,8 @@ class MediaOnTheFly
 
     protected function perform()
     {
+        $this->manipulations = $this->generateManipulations();
+
         $cacheDir = static::getCacheDir();
         $localOriginalFile = $this->media->getPath();
 
