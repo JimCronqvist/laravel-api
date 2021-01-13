@@ -3,6 +3,7 @@
 namespace Cronqvist\Api\Services\MediaLibrary;
 
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Http\File as FileObject;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -132,9 +133,17 @@ class MediaOnTheFly
 
         if(!$this->isDiskDriverLocal()) {
             $localOriginalFile = $cacheDir . $this->media->uuid . '.' . strtolower($this->media->getExtensionAttribute());
-            if(!is_readable($localOriginalFile)) {
+            if(!is_readable($localOriginalFile) || File::size($localOriginalFile) == 0) {
                 $this->ensureCacheDirExists();
-                app(Filesystem::class)->copyFromMediaLibrary($this->media, $localOriginalFile);
+                try {
+                    app(Filesystem::class)->copyFromMediaLibrary($this->media, $localOriginalFile);
+                } catch (FileNotFoundException $e) {
+                    throw new FileNotFoundException('MediaOnTheFly: ' . $e->getMessage(), $e->getCode(), $e);
+                }
+                if(File::size($localOriginalFile) == 0) {
+                    File::delete($localOriginalFile);
+                    throw new \Exception('Unable to retrieve the file (size=0) for media ID: ' . $this->media->id);
+                }
             }
         }
 
@@ -151,7 +160,7 @@ class MediaOnTheFly
         $extension = $this->getExtension();
         $transformFile = $cacheDir . $this->media->uuid . $suffix . '.' . $extension;
 
-        if(!is_readable($transformFile)) {
+        if(!is_readable($transformFile) || File::size($transformFile) == 0) {
             if($this->isDiskDriverLocal()) {
                 $this->ensureCacheDirExists();
             }
