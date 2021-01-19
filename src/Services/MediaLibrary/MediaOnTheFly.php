@@ -153,7 +153,7 @@ class MediaOnTheFly
                 $this->deleteAfterSend = false;
             }
             $file = new FileObject($localOriginalFile);
-            return [$file, $file->getFilename()];
+            return [$file, $this->getOutputFilename('', $this->getExtension())];
         }
 
         $suffix = $this->getFilenameSuffix();
