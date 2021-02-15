@@ -5,8 +5,7 @@ namespace Cronqvist\Api\Console\Commands;
 use Cronqvist\Api\Services\MediaLibrary\MediaOnTheFly;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\Finder\Finder;
+use Symfony\Component\Process\Process;
 
 class ApiMediaCacheClean extends Command
 {
@@ -39,25 +38,27 @@ class ApiMediaCacheClean extends Command
      */
     public function handle()
     {
-        $directory = MediaOnTheFly::getCacheDir();
-        $files = iterator_to_array(
-            Finder::create()
-                ->files()
-                ->ignoreDotFiles(false)
-                ->in($directory)
-                ->sortByModifiedTime()
-                ->reverseSorting()
-            , false
-        );
+        $dir = MediaOnTheFly::getCacheDir();
+
+        // Output is one file per row, in the format: {bytes} {filename}
+        $cmd = "find '$dir' -type f -printf '%T@ %s %p\n' | sort -zrn | awk '{ print $2,$3 }' | sed 's/ .*\// /g'";
+        $process = Process::fromShellCommandline($cmd);
+        $process->run();
+        $output = $process->getOutput();
+
         $allowed = 1024 * 1024 * 1024 * (int) $this->argument('GB');
         $size = 0;
         $deleted = 0;
-        foreach($files as $file) {
-            /** @var $file \Symfony\Component\Finder\SplFileInfo */
-            $size += $file->getSize();
+
+        foreach($this->getLines($output) as $line) {
+            if(empty($line)) continue;
+
+            list($bytes, $filename) = explode(' ', $line);
+            $filepath = $dir . $filename;
+            $size += $bytes;
 
             if($size > $allowed) {
-                File::delete($file->getPathname());
+                File::delete($filepath);
                 $deleted++;
             }
         }
@@ -70,10 +71,11 @@ class ApiMediaCacheClean extends Command
         };
 
         return printf(
-            "Total size: %s\nSize allowed: %s\nFiles deleted: %s\n",
+            "Total size: %s\nSize allowed: %s\nFiles deleted: %s\nMemory Usage: %s\n",
             $humanReadableBytes($size),
             $humanReadableBytes($allowed),
-            $deleted
+            $deleted,
+            round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
         );
     }
 }
