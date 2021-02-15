@@ -78,4 +78,20 @@ class ApiMediaCacheClean extends Command
             round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
         );
     }
+
+    /**
+     * Explode equivalent, but with a generator to avoid memory issues
+     *
+     * @param $data
+     * @return \Generator
+     */
+    protected function getLines($data)
+    {
+        $start = 0;
+        while(($end = strpos($data, PHP_EOL, $start)) !== false) {
+            $line = trim(substr($data, $start, $end - $start));
+            yield $line;
+            $start = $end+1;
+        }
+    }
 }
