@@ -116,6 +116,17 @@ class MediaOnTheFly
             : strtolower($this->media->getExtensionAttribute());
     }
 
+    public function isImage()
+    {
+        return in_array($this->media->mime_type, [
+            'image/gif',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            //'image/svg+xml',
+        ]);
+    }
+
     protected function ensureCacheDirExists()
     {
         $cacheDir = static::getCacheDir();
@@ -147,7 +158,7 @@ class MediaOnTheFly
             }
         }
 
-        if($this->manipulations->isEmpty()) {
+        if($this->manipulations->isEmpty() || !$this->isImage()) {
             if($this->isDiskDriverLocal()) {
                 // Never delete the original file if that one is used directly
                 $this->deleteAfterSend = false;
