@@ -17,8 +17,9 @@ use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
-use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\ValidationData;
+use Lcobucci\Clock\SystemClock;
+use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Spatie\QueryBuilder\QueryBuilderRequest;
 use Exception;
 
@@ -293,8 +294,9 @@ abstract class ApiController extends BaseController
                     if(Str::startsWith($jwt, 'Bearer ')) {
                         $jwt = Str::substr($jwt, 7);
                     }
-                    $token = (new Parser())->parse($jwt);
-                    $expired = $token->getClaims()['exp']->validate(new ValidationData()) === false;
+                    $token = Configuration::forUnsecuredSigner()->parser()->parse($jwt);
+                    $validAt = new LooseValidAt(new SystemClock(new \DateTimeZone(\date_default_timezone_get())));
+                    $expired = Configuration::forUnsecuredSigner()->validator()->validate($token, $validAt) === false;
                 } catch (Exception $e) {}
                 $message = $expired ? 'Not authenticated, token expired.' : 'Not authenticated, token invalid.';
                 $exception = new AuthenticationException($message, ['api']);

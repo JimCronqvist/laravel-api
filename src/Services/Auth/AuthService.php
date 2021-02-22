@@ -25,6 +25,7 @@ use Laravel\Passport\HasApiTokens;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Token;
 use Laravel\Passport\Passport;
+use Lcobucci\JWT\Configuration;
 use League\OAuth2\Server\AuthorizationServer;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\ResourceServer;
@@ -150,9 +151,11 @@ class AuthService
         // Add "expires_at" to the response
         $content = @json_decode($response->getContent(), true);
         if(isset($content['access_token'])) {
-            $tokenId = (new \Lcobucci\JWT\Parser())
+            $tokenId = Configuration::forUnsecuredSigner()
+                ->parser()
                 ->parse($content['access_token'])
-                ->getClaim('jti');
+                ->claims()
+                ->get('jti');
             $token = Token::query()->findOrFail($tokenId);
             $content['expires_at'] = $token->expires_at->toAtomString();
             $response->setContent($content);

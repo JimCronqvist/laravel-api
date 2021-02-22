@@ -6,14 +6,20 @@ use Illuminate\Config\Repository as Config;
 use Illuminate\Http\Request;
 use Laravel\Passport\Guards\TokenGuard;
 use Laravel\Passport\Passport;
-use Lcobucci\JWT\Parser;
+use Lcobucci\Clock\SystemClock;
+use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Encoding\CannotDecodeContent;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Signer\Key\LocalFileReference;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
-use Lcobucci\JWT\ValidationData;
+use Lcobucci\JWT\Token\InvalidTokenStructure;
+use Lcobucci\JWT\Token\UnsupportedHeaderFound;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use League\OAuth2\Server\CryptKey;
 use League\OAuth2\Server\Exception\OAuthServerException;
-use \BadMethodCallException;
-use \InvalidArgumentException;
-use \RuntimeException;
+use \DateTimeZone;
 
 class JwtTokenGuard extends TokenGuard
 {
@@ -21,6 +27,11 @@ class JwtTokenGuard extends TokenGuard
      * @var \League\OAuth2\Server\CryptKey
      */
     protected CryptKey $publicKey;
+
+    /**
+     * @var \Lcobucci\JWT\Configuration
+     */
+    protected Configuration $jwtConfiguration;
 
     /**
      * Get the authenticated user
@@ -52,6 +63,7 @@ class JwtTokenGuard extends TokenGuard
         }
 
         $this->publicKey = $this->makeCryptKey('public');
+        $this->initJwtConfiguration();
 
         try {
             $this->validate($jwt);
@@ -70,8 +82,8 @@ class JwtTokenGuard extends TokenGuard
      */
     protected function findUser($jwt)
     {
-        $token = (new Parser())->parse($jwt);
-        $userId = $token->getClaim('sub');
+        $token = $this->jwtConfiguration->parser()->parse($jwt);
+        $userId = $token->claims()->get('sub');
         return $this->provider->retrieveById($userId);
     }
 
@@ -94,9 +106,27 @@ class JwtTokenGuard extends TokenGuard
     }
 
     /**
+     * Initialise the JWT configuration.
+     *
+     * @see \League\OAuth2\Server\AuthorizationValidators\BearerTokenValidator::initJwtConfiguration()
+     */
+    protected function initJwtConfiguration()
+    {
+        $this->jwtConfiguration = Configuration::forSymmetricSigner(
+            new Sha256(),
+            InMemory::plainText('')
+        );
+
+        $this->jwtConfiguration->setValidationConstraints(
+            new LooseValidAt(new SystemClock(new DateTimeZone(\date_default_timezone_get()))),
+            new SignedWith(new Sha256(), LocalFileReference::file($this->publicKey->getKeyPath()))
+        );
+    }
+
+    /**
      * Validate the JWT signature, etc. without the checks against the database, such as if the token has been revoked
      *
-     * @see \League\OAuth2\Server\AuthorizationValidators\BearerTokenValidator
+     * @see \League\OAuth2\Server\AuthorizationValidators\BearerTokenValidator::validateAuthorization()
      * @param string $jwt
      * @throws \League\OAuth2\Server\Exception\OAuthServerException
      */
@@ -104,28 +134,17 @@ class JwtTokenGuard extends TokenGuard
     {
         try {
             // Attempt to parse and validate the JWT
-            $token = (new Parser())->parse($jwt);
+            $token = $this->jwtConfiguration->parser()->parse($jwt);
+
+            $constraints = $this->jwtConfiguration->validationConstraints();
+
             try {
-                if ($token->verify(new Sha256(), $this->publicKey->getKeyPath()) === false) {
-                    throw OAuthServerException::accessDenied('Access token could not be verified');
-                }
-            } catch (BadMethodCallException $exception) {
-                throw OAuthServerException::accessDenied('Access token is not signed', null, $exception);
+                $this->jwtConfiguration->validator()->assert($token, ...$constraints);
+            } catch (RequiredConstraintsViolated $exception) {
+                throw OAuthServerException::accessDenied('Access token could not be verified');
             }
-
-            // Ensure access token hasn't expired
-            $data = new ValidationData();
-            $data->setCurrentTime(\time());
-
-            if ($token->validate($data) === false) {
-                throw OAuthServerException::accessDenied('Access token is invalid');
-            }
-        } catch (InvalidArgumentException $exception) {
-            // JWT couldn't be parsed so return the request as is
+        } catch (CannotDecodeContent | InvalidTokenStructure | UnsupportedHeaderFound $exception) {
             throw OAuthServerException::accessDenied($exception->getMessage(), null, $exception);
-        } catch (RuntimeException $exception) {
-            // JWT couldn't be parsed so return the request as is
-            throw OAuthServerException::accessDenied('Error while decoding to JSON', null, $exception);
         }
     }
 
