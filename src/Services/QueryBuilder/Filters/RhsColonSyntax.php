@@ -55,12 +55,18 @@ trait RhsColonSyntax
     /**
      * Parse the value, return the operator and value to us
      *
-     * @param $value
+     * @param string|array $value
      * @return array
      */
     protected function parseValue($value)
     {
-        $split = explode(':', $value, 2);
+        if(is_array($value)) {
+            $first = array_shift($value);
+            $split = explode(':', $first, 2);
+            $split[1] = implode(',', array_merge([$split[1]], $value));
+        } else {
+            $split = explode(':', $value, 2);
+        }
         if(count($split) == 2 && in_array($split[0], array_keys($this->operators))) {
             $operator = $split[0];
             $value = $split[1];
