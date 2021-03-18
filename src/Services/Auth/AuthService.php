@@ -5,6 +5,7 @@ namespace Cronqvist\Api\Services\Auth;
 use Carbon\Carbon;
 use Cronqvist\Api\Exception\ApiException;
 use Cronqvist\Api\Exception\ApiPassportException;
+use Cronqvist\Api\Services\Auth\Events\Login;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -269,6 +270,26 @@ class AuthService
     }
 
     /**
+     * Fire Login event on successful logins
+     *
+     * @param Response $response
+     */
+    protected function fireLoginEvent(Response $response)
+    {
+        $content = @json_decode($response->getContent(), true);
+        if(isset($content['access_token'])) {
+            $tokenId = Configuration::forUnsecuredSigner()
+                ->parser()
+                ->parse($content['access_token'])
+                ->claims()
+                ->get('jti');
+            $token = Token::query()->findOrFail($tokenId);
+
+            Login::dispatch($token->user()->first());
+        }
+    }
+
+    /**
      * Login via Laravel Passport with only a username & password
      *
      * @param string $username
@@ -298,6 +319,8 @@ class AuthService
                 throw new AuthenticationException('Incorrect user credentials.');
             }
         }
+
+        $this->fireLoginEvent($response);
 
         return $this->processPassportAccessToken($response);
     }
