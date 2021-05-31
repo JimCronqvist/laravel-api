@@ -5,6 +5,7 @@ namespace Cronqvist\Api\Http\Resources;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 trait TransformRelationToResource
 {
@@ -28,7 +29,9 @@ trait TransformRelationToResource
         $model = $this->resource instanceof Model ? $this->resource : null;
         if($model) {
             foreach($model->getRelations() as $relation => $value) {
-                $data[$relation] = $this->transformRelation($value);
+                $class = get_class($model);
+                $key = $class::$snakeAttributes ? Str::snake($relation) : $relation;
+                $data[$key] = $this->transformRelation($value);
             }
         }
         return $data;
