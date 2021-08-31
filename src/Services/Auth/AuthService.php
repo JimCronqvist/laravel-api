@@ -198,6 +198,10 @@ class AuthService
         $interval = Passport::refreshTokensExpireIn();
         $expire = Carbon::now()->add($interval);
         $minutes = (int) ceil(Carbon::now()->diffInSeconds($expire, false) / 60);
+        $sameSite = config('api.same_site', 'lax');
+        if(strtolower($sameSite) == 'none' && app()->environment('local') && !request()->secure()) {
+            $sameSite = 'lax';
+        }
 
         return Cookie::make(
             static::$refreshToken,
@@ -208,7 +212,7 @@ class AuthService
             request()->secure(),
             true,
             false,
-            config('api.same_site', 'lax'),
+            $sameSite,
         );
     }
 
@@ -224,6 +228,10 @@ class AuthService
         $expire = Carbon::now()->add($interval);
         $expire = $expire->addMonth(); // Add a bit time to the cookie, to be able to catch the token as 'expired'.
         $minutes = (int) ceil(Carbon::now()->diffInSeconds($expire, false) / 60);
+        $sameSite = config('api.same_site', 'lax');
+        if(strtolower($sameSite) == 'none' && app()->environment('local') && !request()->secure()) {
+            $sameSite = 'lax';
+        }
 
         return Cookie::make(
             static::$accessToken,
@@ -234,7 +242,7 @@ class AuthService
             request()->secure(),
             true,
             false,
-            config('api.same_site', 'lax'),
+            $sameSite,
         );
     }
 
