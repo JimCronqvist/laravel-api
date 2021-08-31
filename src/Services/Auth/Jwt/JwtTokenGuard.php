@@ -91,7 +91,7 @@ class JwtTokenGuard extends TokenGuard
      * Get the JWT from the request
      *
      * @param Request $request
-     * @return array|string
+     * @return array|string|null
      */
     protected function getJwt(Request $request)
     {
@@ -103,6 +103,7 @@ class JwtTokenGuard extends TokenGuard
                 return $this->decodeJwtTokenCookie($request);
             } catch (\Exception $e) {}
         }
+        return null;
     }
 
     /**
@@ -119,7 +120,10 @@ class JwtTokenGuard extends TokenGuard
 
         $this->jwtConfiguration->setValidationConstraints(
             new LooseValidAt(new SystemClock(new DateTimeZone(\date_default_timezone_get()))),
-            new SignedWith(new Sha256(), LocalFileReference::file($this->publicKey->getKeyPath()))
+            new SignedWith(
+                new Sha256(),
+                InMemory::plainText($this->publicKey->getKeyContents(), (string) $this->publicKey->getPassPhrase())
+            )
         );
     }
 
