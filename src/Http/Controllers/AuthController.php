@@ -53,7 +53,13 @@ class AuthController extends Controller
     {
         $class = get_class($this->authService);
         $refreshTokenName = $class::$refreshToken;
-        return $this->authService->refresh(request()->cookie($refreshTokenName));
+
+        // A httponly cookie is recommended, but 'post' is supported as well.
+        $refreshToken = !empty(request()->input($refreshTokenName))
+            ? request()->input($refreshTokenName)
+            : request()->cookie($refreshTokenName);
+
+        return $this->authService->refresh($refreshToken);
     }
 
     /**
