@@ -323,8 +323,11 @@ class AuthService
         try {
             $response = $this->requestPassportAccessToken($data);
         } catch (OAuthServerException $exception) {
-            if($exception->getCode() == 10) {
+            /** @see \League\OAuth2\Server\Exception\OAuthServerException */
+            if(in_array($exception->getCode(), [6, 10])) {
                 throw new AuthenticationException('Incorrect user credentials.');
+            } else {
+                throw $exception;
             }
         }
 

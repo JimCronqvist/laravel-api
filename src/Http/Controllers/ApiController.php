@@ -301,8 +301,9 @@ abstract class ApiController extends BaseController
                 $message = $expired ? 'Not authenticated, token expired.' : 'Not authenticated, token invalid.';
                 $exception = new AuthenticationException($message, ['api']);
             } else {
+                $modelOrClass = empty($arguments) ? $this->modelClass : $arguments;
                 $exception = new ApiAuthorizationException(null, null, $exception);
-                $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $arguments);
+                $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $modelOrClass);
             }
             throw $exception;
         }
