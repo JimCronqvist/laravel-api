@@ -373,7 +373,10 @@ class GenerateDoc
         $reflection = new ReflectionClass($class);
 
         if(!$reflection->hasMethod($method)) {
-            $defaultMethods = ['index', 'show', 'store', 'update', 'destroy'];
+            $defaultMethods = [
+                'index', 'show', 'store', 'update', 'destroy',
+                'mediaIndex', 'mediaShow', 'mediaStore', 'mediaUpdate', 'mediaDestroy',
+            ];
             if(in_array($method, $defaultMethods)) {
                 $method = 'default' . ucfirst($method);
             }
