@@ -390,12 +390,9 @@ class AuthService
     public function user()
     {
         $user = auth('api')->user();
-
-        // Load relations if specified
-        foreach(static::$loadRelations as $relation) {
-            $user->{$relation};
+        if($user) {
+            $user->load(static::$loadRelations);
         }
-
         return $user;
     }
 
