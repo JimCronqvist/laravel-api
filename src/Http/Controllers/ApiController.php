@@ -141,7 +141,8 @@ abstract class ApiController extends BaseController
      */
     protected function defaultShow(int $id)
     {
-        if(($builder = $this->getBuilder()) instanceof Builder) {
+        $builder = $this->getBuilder();
+        if($builder instanceof QueryBuilder || $builder instanceof Builder) {
             // Remove unnecessary clauses from the queries that will only decrease performance
             $builder->setQuery($builder->getQuery()->cloneWithout([
                 'joins', 'wheres', 'groups', 'havings', 'orders', 'offset',
