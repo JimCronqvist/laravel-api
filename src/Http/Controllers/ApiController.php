@@ -5,6 +5,7 @@ namespace Cronqvist\Api\Http\Controllers;
 use Cronqvist\Api\Exception\ApiAuthorizationException;
 use Cronqvist\Api\Services\Auth\Utils;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
+use Cronqvist\Api\Services\QueryBuilder\QueryBuilder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Builder;
@@ -95,7 +96,8 @@ abstract class ApiController extends BaseController
     {
         $this->authorizeMethod('index');
         $data = [];
-        if(($builder = $this->getBuilder()) instanceof Builder) {
+        $builder = $this->getBuilder();
+        if($builder instanceof QueryBuilder || $builder instanceof Builder) {
             $data = $this->perPage > 0
                 ? $builder->paginate($this->getPerPage())
                 : $builder->get();
