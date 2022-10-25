@@ -73,6 +73,18 @@ abstract class ApiController extends BaseController
     }
 
     /**
+     * Get the effective perPage value, either overriden from the request or fallback on the set property
+     *
+     * @return int
+     */
+    protected function getPerPage()
+    {
+        $requestPerPage = (int) $this->getRequest()->query('per_page', $this->perPage);
+        $requestPerPage = $requestPerPage <= $this->perPage ? $requestPerPage : $this->perPage;
+        return $this->perPage > 0 ? $requestPerPage : $this->perPage;
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Resources\Json\JsonResource
@@ -85,7 +97,7 @@ abstract class ApiController extends BaseController
         $data = [];
         if(($builder = $this->getBuilder()) instanceof Builder) {
             $data = $this->perPage > 0
-                ? $builder->paginate($this->perPage)
+                ? $builder->paginate($this->getPerPage())
                 : $builder->get();
 
             if($data instanceof AbstractPaginator) {
