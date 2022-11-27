@@ -108,7 +108,18 @@ trait MediaEndpoints
         $this->authorizeMethod('store', $model);
 
         $media = [];
-        foreach($this->getFilesForUpload($model) as $collection => $fileAdders) {
+        $allowedMediaCollections = $this->getAllowedMediaCollections($model);
+        $filesForUpload = $this->getFilesForUpload($model);
+
+        foreach($filesForUpload as $collection => $fileAdders) {
+            if(!in_array($collection, $allowedMediaCollections)) {
+                throw new BadRequestHttpException(
+                    "The media collection '$collection' is not registered in '".get_class($model)
+                );
+            }
+        }
+
+        foreach($filesForUpload as $collection => $fileAdders) {
             foreach($fileAdders as $fileAdder) {
                 $fileAdder->sanitizingFileName(function($fileName) use($fileAdder) {
                     $fileName = $fileAdder->defaultSanitizer($fileName);
@@ -122,6 +133,15 @@ trait MediaEndpoints
             }
         }
         return is_array($media) && count($media) === 1 ? current($media)->toArray() : $media;
+    }
+
+    protected function getAllowedMediaCollections(Model $model)
+    {
+        $allowedMediaCollections = $model->getRegisteredMediaCollections()->pluck('name')->unique()->all();
+        if(($foundBlank = array_search('', $allowedMediaCollections)) !== false) {
+            $allowedMediaCollections[$foundBlank] = 'default';
+        }
+        return $allowedMediaCollections;
     }
 
     /**
