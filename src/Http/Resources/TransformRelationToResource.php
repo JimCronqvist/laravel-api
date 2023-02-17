@@ -46,10 +46,10 @@ trait TransformRelationToResource
     /**
      * Transform a relation with its own related resource class
      *
-     * @param string $relation
+     * @param Model|Collection $relation
      * @return ApiResource|ResourceCollection|mixed
      */
-    protected function transformRelation(string $relation)
+    protected function transformRelation($relation)
     {
         if(empty($relation)) {
             return $relation;
