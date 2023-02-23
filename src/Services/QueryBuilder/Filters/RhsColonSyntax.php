@@ -110,6 +110,8 @@ trait RhsColonSyntax
      */
     protected function applyFilter(Builder $query, string $column, string $operator, string $value)
     {
+        $column = $query->getModel()->qualifyColumn($column);
+
         // Do some final preparations of the value
         if(in_array($operator, ['in', 'nin'])) {
             $value = explode(',', $value);
