@@ -14,8 +14,8 @@ trait TransformRelationToResource
 {
     use GuessForModel;
 
-    private ApiResource $parentResource;
-    private string $requestedAs;
+    private ?ApiResource $parentResource = null;
+    private ?string $requestedAs = null;
 
     /**
      * Override the mapping of a Model with its Resource
