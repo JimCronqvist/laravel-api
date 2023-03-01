@@ -103,7 +103,8 @@ abstract class ApiController extends BaseController
                 : $builder->get();
 
             if($data instanceof AbstractPaginator) {
-                $data = $data->setCollection($this->transformData($data->getCollection()));
+                $data = $data->setCollection($this->transformData($data->getCollection()))
+                             ->withQueryString();
             } else {
                 $data = $this->transformData($data);
             }
