@@ -70,13 +70,15 @@ class ApiMediaCacheClean extends Command
             return round($bytes/pow(1024, $e), 2) . ' ' . $s[$e];
         };
 
-        return printf(
+        $this->line(sprintf(
             "Total size: %s\nSize allowed: %s\nFiles deleted: %s\nMemory Usage: %s\n",
             $humanReadableBytes($size),
             $humanReadableBytes($allowed),
             $deleted,
             round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
-        );
+        ));
+
+        return 0;
     }
 
     /**
