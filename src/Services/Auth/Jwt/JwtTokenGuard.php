@@ -115,7 +115,7 @@ class JwtTokenGuard extends TokenGuard
     {
         $this->jwtConfiguration = Configuration::forSymmetricSigner(
             new Sha256(),
-            InMemory::plainText('')
+            InMemory::plainText($this->publicKey->getKeyContents(), (string) $this->publicKey->getPassPhrase())
         );
 
         $this->jwtConfiguration->setValidationConstraints(
