@@ -359,8 +359,9 @@ class AuthService
 
         // Utilize atomic lock and cache to handle race conditions, as a refresh token can only be refreshed one time.
         if(Cache::getStore() instanceof LockProvider) {
-            $lock = Cache::lock('lock:' . $key);
-            $response = $lock->block(10, function() use($refresh, $key, $refreshToken) {
+            $timeout = 10;
+            $lock = Cache::lock('lock:' . $key, $timeout+1);
+            $response = $lock->block($timeout, function() use($refresh, $key, $refreshToken) {
                 return $refresh($key, $refreshToken);
             });
         } else {
