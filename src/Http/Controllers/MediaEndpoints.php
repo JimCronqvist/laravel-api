@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Cronqvist\Api\Services\Cache\HttpCache;
+use Cronqvist\Api\Services\Filesystem\DiskConfig;
 
 trait MediaEndpoints
 {
@@ -62,6 +64,11 @@ trait MediaEndpoints
         $model = $this->getModelById($modelId);
         $media = $this->getMediaById($model, $mediaId);
         $this->authorizeMethod('show', $model);
+        if($media && !DiskConfig::has($media->disk)) {
+            abort(404, "Media disk '{$media->disk}' is not configured");
+        } else if($media && HttpCache::isNotModified($media->updated_at)) {
+            return HttpCache::notModified();
+        }
         return $media;
     }
 
