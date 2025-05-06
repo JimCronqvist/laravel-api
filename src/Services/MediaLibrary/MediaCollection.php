@@ -4,6 +4,7 @@ namespace Cronqvist\Api\Services\MediaLibrary;
 
 use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection as SpatieMediaCollection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Cronqvist\Api\Services\Filesystem\DiskConfig;
 
 class MediaCollection extends SpatieMediaCollection
 {
