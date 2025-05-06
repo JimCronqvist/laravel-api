@@ -14,6 +14,11 @@ class MediaCollection extends SpatieMediaCollection
         }
 
         return old($this->formFieldName ?? $this->collectionName) ?? $this->map(function (Media $media) {
+            $diskConfigured = DiskConfig::has($media->disk);
+            //if(!$diskConfigured) {
+            //    abort(500, "Media disk '{$media->disk}' is not configured");
+            //}
+            
             return [
                 'id' => $media->getKey(),
                 'collection_name' => $media->collection_name,
@@ -21,8 +26,9 @@ class MediaCollection extends SpatieMediaCollection
                 'file_name' => $media->file_name,
                 'mime_type' => $media->mime_type,
                 'uuid' => $media->uuid,
-                'preview_url' => $media->hasGeneratedConversion('preview') ? $media->getUrl('preview') : '',
-                'original_url' => $media->getUrl(),
+                'disk' => $media->disk,
+                'preview_url' => $diskConfigured && $media->hasGeneratedConversion('preview') ? $media->getUrl('preview') : '',
+                'original_url' => $diskConfigured ? $media->getUrl() : '',
                 'order' => $media->order_column,
                 'custom_properties' => $media->custom_properties,
                 'extension' => $media->extension,
