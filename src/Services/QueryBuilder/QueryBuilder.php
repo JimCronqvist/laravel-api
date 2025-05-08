@@ -14,7 +14,8 @@ class QueryBuilder extends BaseQueryBuilder
             if($sort instanceof AllowedSort) {
                 return $sort;
             }
-            return AllowedSort::field(ltrim($sort, '-'));
+            $name = ltrim($sort, '-');
+            return AllowedSort::field($name, $this->getModel()->qualifyColumn($name));
         });
         $this->ensureAllSortsExist();
         $this->addRequestedSortsToQuery();
