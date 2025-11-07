@@ -106,7 +106,7 @@ class GenerateDoc
                 $item = [
                     'summary' => $docBlock->getSummary(),
                     'description' => (string) $docBlock->getDescription(),
-                    'tags' => [$reflection->getNamespaceName()],
+                    'tags' => [$reflection->getNamespaceName(), $uri],
                     'parameters' => $this->getRouteParameters($route),
                     'responses' => $this->getResponses($route),
                     'security' => $this->isRouteAllowingGuests($route) ? null : [['AccessToken' => []]],
