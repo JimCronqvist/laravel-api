@@ -43,7 +43,7 @@ class DummyClass extends FormRequest
         }
 
         // PUT|PATCH Method rules
-        return $rules + [
+        return $this->addSometimesToAll($rules) + [
             //
         ];
     }
