@@ -99,6 +99,7 @@ class GenerateDoc
             $reflection = $this->reflections[$class];
             $docBlock   = $this->getDocBlock($route['action']);
             $uri        = $route['uri'];
+            $prefix = preg_match('#^((?:.*/)?api/[^/]+)#', $uri, $m) ? $m[1] : '';
 
             foreach($route['method'] as $method) {
                 if(in_array($method, ['HEAD', 'OPTIONS', 'PATCH'])) continue;
@@ -106,7 +107,7 @@ class GenerateDoc
                 $item = [
                     'summary' => $docBlock->getSummary(),
                     'description' => (string) $docBlock->getDescription(),
-                    'tags' => [$reflection->getNamespaceName(), $uri],
+                    'tags' => [$reflection->getNamespaceName() . " - $prefix"],
                     'parameters' => $this->getRouteParameters($route),
                     'responses' => $this->getResponses($route),
                     'security' => $this->isRouteAllowingGuests($route) ? null : [['AccessToken' => []]],
