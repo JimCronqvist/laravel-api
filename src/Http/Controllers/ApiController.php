@@ -11,6 +11,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -125,8 +126,10 @@ abstract class ApiController extends BaseController
         $this->authorizeMethod('store');
         if($this->service && method_exists($this->service, 'create')) {
             $model = $this->service->create($formRequest->validated());
+            $model->refresh();
         } else {
             $model = $this->getModelClass()::create($formRequest->validated());
+            $model->refresh();
         }
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
@@ -206,8 +209,10 @@ abstract class ApiController extends BaseController
         $this->authorizeMethod('update', $model);
         if($this->service && method_exists($this->service, 'update')) {
             $this->service->update($model, $formRequest->validated());
+            $model->refresh();
         } else {
             $model->update($formRequest->validated());
+            $model->refresh();
         }
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
@@ -284,7 +289,7 @@ abstract class ApiController extends BaseController
     protected function authorizeMethod($method, Model $model = null)
     {
         if($this->applyPolicy) {
-            $this->authorize($this->resourceAbilityMap()[$method] ?? $method, $model ?? $this->getModelClass());
+            $this->authorize($this->resourceAbilityMap()[$method] ?? $method, [$model ?? $this->getModelClass()]);
         }
     }
 
@@ -362,5 +367,190 @@ abstract class ApiController extends BaseController
             return $this->{$defaultMethod}(...$parameters);
         }
         return parent::__call($method, $parameters);
+    }
+
+    /**
+     * Authorize each controller method for the API Resource, as we are unable to use "$this->authorizeResource()"
+     * because of our implementation where we do not resolve the model automatically in the route
+     *
+     * @param string $method
+     * @param \Illuminate\Database\Eloquent\Model $parent
+     * @param \Illuminate\Database\Eloquent\Model|null $child
+     * @param string $relation
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Exception
+     */
+    protected function authorizeNestedRouteMethod(string $method, Model $parent, string $relation, ?Model $child)
+    {
+        if($this->applyPolicy) {
+            $arguments = [$model ?? $this->getModelClass(), $parent, $relation];
+            if($child !== null) {
+                $arguments[] = $child;
+            }
+            $this->authorize($method, $arguments);
+        }
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasManyIndex()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasManyShow()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasManyStore()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasManyUpdate()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasManyDestroy()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasOneShow()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasOneUpsert()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationHasOneDestroy()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationBelongsToShow()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationBelongsToManyIndex()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationBelongsToManyShow()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @param int $parentId
+     * @param int $childId
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    public function relationBelongsToManyAttach(int $parentId, int $childId)
+    {
+        $relation = request()->route('relation');
+        $parentModel = $this->getModelById($parentId);
+
+        $relationInstance = $parentModel->$relation();
+        if(!$relationInstance instanceof BelongsToMany) {
+            abort(500, 'Relation is not a BelongsToMany.');
+        }
+
+        $childModelClass = get_class($relationInstance->getRelated());
+        $child = $childModelClass::findOrFail($childId);
+
+        $this->authorizeNestedRouteMethod('relationBelongsToManyAttach', $parentModel, $relation, $child);
+
+        $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
+        if($alreadyAttached) {
+            abort(409, "The parent model {$parentId} already contains the child model {$childId} in the '{$relation}' relation.");
+        }
+
+        $relationInstance->attach($childId);
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationBelongsToManySync()
+    {
+        return response()->json(['message' => __METHOD__]);
+    }
+
+    /**
+     * @param int $parentId
+     * @param int $childId
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    public function relationBelongsToManyDetach(int $parentId, int $childId)
+    {
+        $relation = request()->route('relation');
+        $parentModel = $this->getModelById($parentId);
+
+        $relationInstance = $parentModel->$relation();
+        if(!$relationInstance instanceof BelongsToMany) {
+            abort(500, 'Relation is not a BelongsToMany.');
+        }
+
+        $this->authorizeNestedRouteMethod('relationBelongsToManyDetach', $parentModel, $relation, null);
+
+        $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
+        if(!$alreadyAttached) {
+            abort(404, "The parent model {$parentId} does not contain the child model {$childId} in the '{$relation}' relation.");
+        }
+
+        $relationInstance->detach($childId);
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function relationBelongsToManyPivot()
+    {
+        return response()->json(['message' => __METHOD__]);
     }
 }

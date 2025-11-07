@@ -66,6 +66,7 @@ class DummyClass extends ApiController
     {
         $this->authorizeMethod('store');
         $DummyModelVariable = $this->service->create($request->validated());
+        $DummyModelVariable->refresh();
         return new DummyModelClassResource($DummyModelVariable);
     }
 
@@ -81,6 +82,7 @@ class DummyClass extends ApiController
     {
         $this->authorizeMethod('update', $DummyModelVariable);
         $this->service->update($DummyModelVariable, $request->validated());
+        $DummyModelVariable->refresh();
         return new DummyModelClassResource($DummyModelVariable);
     }
 

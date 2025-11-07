@@ -36,10 +36,24 @@ trait IsAllowed
     }
 
     /**
-     * Check if the user is allowed to request a specific method
+     * Check if the user is allowed to request a specific method, without wrapping the ability with the model table name
      *
-     * @param User|null $user
-     * @param string|null $ability
+     * @param \App\User|null $user
+     * @param $ability
+     * @return bool
+     */
+    protected function isAllowedRaw(?User $user, $ability = null)
+    {
+        if($user === null) return false;
+
+        return $user->can($ability);
+    }
+
+    /**
+     * Check if the user is allowed to request a specific method, this will wrap the ability with the model table name
+     *
+     * @param \App\User|null $user
+     * @param $ability
      * @return bool
      * @throws ApiException
      */
@@ -54,8 +68,8 @@ trait IsAllowed
     /**
      * Check if the user is allowed to request a specific method, when the user is associated with the model
      *
-     * @param User|null $user
-     * @param Model $model
+     * @param \App\User|null $user
+     * @param \Illuminate\Database\Eloquent\Model $model
      * @param string|null $ability
      * @return bool
      * @throws ApiException
@@ -71,7 +85,7 @@ trait IsAllowed
     /**
      * Check if the user is authorized for the specific ability
      *
-     * @param User $user
+     * @param \App\User $user
      * @param $ability
      * @return mixed
      * @throws ApiException

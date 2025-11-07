@@ -19,7 +19,13 @@ use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Routing\ResourceRegistrar;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ApiServiceProvider extends BaseServiceProvider
 {
@@ -55,7 +61,8 @@ class ApiServiceProvider extends BaseServiceProvider
 
         $this->registerMiddlewareAliases();
         $this->registerPolicies();
-        $this->registerRouterMacro();
+        $this->registerRouterMediaMacro();
+        $this->registerRouterNestedRoutesMacro();
     }
 
     /**
@@ -150,7 +157,7 @@ class ApiServiceProvider extends BaseServiceProvider
      *
      * @return void
      */
-    public function registerRouterMacro()
+    public function registerRouterMediaMacro()
     {
         /** @var \Illuminate\Routing\Router $router */
         $router = $this->app['router'];
@@ -173,6 +180,73 @@ class ApiServiceProvider extends BaseServiceProvider
                 };
             });
             return $pending;
+        });
+    }
+
+    public function registerRouterNestedRoutesMacro()
+    {
+        $router = $this->app['router'];
+        PendingResourceRegistration::macro('withNestedRelations', function(array $relations) use($router) {
+            $base = $this->name; // First segment of the resource route path
+            $controller = $this->controller;
+
+            $currentGroupStack = $router->getGroupStack();
+            $currentRouteGroupNamespace = optional(
+                $currentGroupStack[array_key_last($currentGroupStack)] ?? null
+            )['namespace'] ?? null;
+            if($currentRouteGroupNamespace && is_string($controller) && !Str::startsWith($controller, '\\')) {
+                $controller = $currentRouteGroupNamespace.'\\'.$controller;
+            }
+            // @todo Too heavy? Could we avoid instantiating the controller here? Guessing the model instead?
+            $controllerInstance = app()->make($controller);
+            $model = AccessInstance::getProperty($controllerInstance, 'modelClass');
+
+            $resourceRegistrar = new ResourceRegistrar($router);
+            $baseWildcard = $resourceRegistrar->getResourceWildcard($base);
+
+            Route::scopeBindings()->group(function() use($relations, $base, $controller, $baseWildcard, $model, $resourceRegistrar) {
+                foreach($relations as $key => $value) {
+                    $relation = is_string($key) ? $key : $value;
+                    $relationWildcard = $resourceRegistrar->getResourceWildcard($relation);
+                    $relationType = (new $model)->{$relation}();
+                    $relationName = Str::kebab($relation);
+
+                    if($relationType instanceof HasMany) {
+                        // one-to-many (HasMany) routes (parent owns children)
+                        Route::get("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationHasManyIndex'])->name($base.".$relationName.index")->defaults('relation', $relation);
+                        Route::get("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}", [$controller, 'relationHasManyShow'])->name($base.".$relationName.show")->defaults('relation', $relation);
+                        // Use related controller on the below three endpoints? Or... support using the related controllers service class instead, could be enough?
+                        Route::post("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationHasManyStore'])->name($base.".$relationName.store")->defaults('relation', $relation);
+                        Route::put("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}", [$controller, 'relationHasManyUpdate'])->name($base.".$relationName.update")->defaults('relation', $relation);
+                        Route::delete("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}", [$controller, 'relationHasManyDestroy'])->name($base.".$relationName.destroy")->defaults('relation', $relation);
+                    }
+                    elseif($relationType instanceof HasOne) {
+                        // one-to-one (HasOne) routes (parent own single child)
+                        Route::get   ("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationHasOneShow'])->name($base.".$relationName.show")->defaults('relation', $relation);
+                        // Do we want separate POST and PUT methods, or just one UPSERT (PUT) method? Disable for now.
+                        //Route::put   ("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationHasOneUpsert'])->name($base.".$relationName.upsert")->defaults('relation', $relation);
+                        Route::delete("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationHasOneDestroy'])->name($base.".$relationName.destroy")->defaults('relation', $relation);
+                    }
+                    elseif($relationType instanceof BelongsTo) {
+                        // one-to-one (BelongsTo) routes (read-only nested route to parent)
+                        Route::get("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationBelongsToShow'])->name($base.".$relationName.show")->defaults('relation', $relation);
+                    }
+                    elseif($relationType instanceof BelongsToMany) {
+                        // many-to-many (BelongsToMany) (pivot attach/detach/sync)
+                        Route::get("$base/{{$baseWildcard}}/$relationName", [$controller, 'relationBelongsToManyIndex'])->name($base.".$relationName.index")->defaults('relation', $relation);
+                        Route::get("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}", [$controller, 'relationBelongsToManyShow'])->name($base.".$relationName.show")->defaults('relation', $relation);
+                        Route::post("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}/attach", [$controller, 'relationBelongsToManyAttach'])->name($base.".$relationName.attach")->defaults('relation', $relation);
+                        //Route::put("$base/{{$baseWildcard}}/$relationName/sync", [$controller, 'relationBelongsToManySync'])->name($base.".$relationName.sync")->defaults('relation', $relation);
+                        Route::delete("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}/detach", [$controller, 'relationBelongsToManyDetach'])->name($base.".$relationName.detach")->defaults('relation', $relation);
+                        // Check if a pivot is used
+                        if(method_exists($relationType, 'using')) {
+                            Route::patch("$base/{{$baseWildcard}}/$relationName/{{$relationWildcard}}/pivot", [$controller, 'relationBelongsToManyPivot'])->name($base.".$relationName.updatePivot")->defaults('relation', $relation);
+                        }
+                    }
+                }
+            });
+
+            return $this;
         });
     }
 }
