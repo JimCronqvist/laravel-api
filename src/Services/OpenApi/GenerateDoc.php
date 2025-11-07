@@ -130,9 +130,11 @@ class GenerateDoc
         }
         if(in_array($httpMethod, ['POST'])) {
             $responses[201] = ['description' => 'Entity created'];
+            $responses[204] = ['description' => 'OK, no content returned'];
+            $responses[409] = ['description' => 'Conflict, entity already exists'];
         }
         if(in_array($httpMethod, ['DELETE'])) {
-            $responses[204] = ['description' => 'Entity deleted'];
+            $responses[204] = ['description' => 'Entity deleted or detached'];
         }
         if(in_array($httpMethod, ['GET'])) {
             $responses[400] = ['description' => 'Provided data is invalid'];
@@ -146,7 +148,7 @@ class GenerateDoc
         if(in_array($httpMethod, ['POST', 'PUT'])) {
             $responses[422] = ['description' => 'Validation error'];
         }
-        //$responses[500] = ['description' => 'Internal Server Error'];
+        $responses[500] = ['description' => 'Internal Server Error'];
 
         return $responses;
     }
