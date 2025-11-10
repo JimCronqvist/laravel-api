@@ -12,31 +12,6 @@ trait SoftDeleteCustom
     protected $forceDeleting = false;
 
     /**
-     * Indicates whether the model maintains a "deleted at" timestamp.
-     *
-     * @var bool
-     */
-    protected $syncDeletedAt = false;
-
-    /**
-     * The custom soft delete column and state values.
-     *
-     * Defaults: column "deleted", 0 = active, 1 = deleted.
-     *
-     * @var string|int|bool
-     */
-    protected $softDeleteColumn       = 'deleted';
-    protected $softDeleteActiveValue  = 0;
-    protected $softDeleteDeletedValue = 1;
-
-    /**
-     * The name of the "deleted at" column.
-     *
-     * @var string
-     */
-    protected $deletedAtColumn = 'deleted_at';
-
-    /**
      * Boot the soft deleting trait for a model.
      *
      * @return void
@@ -65,7 +40,7 @@ trait SoftDeleteCustom
     }
 
     /**
-     * Perform the actual delete query on this model instance.
+     * Perform the actual soft delete query on this model instance.
      *
      * @return void
      */
@@ -135,7 +110,6 @@ trait SoftDeleteCustom
         return $result;
     }
 
-
     /**
      * Register a "restored" model event callback with the dispatcher.
      *
@@ -175,7 +149,6 @@ trait SoftDeleteCustom
         return $deleted;
     }
 
-
     /**
      * Determine if the model instance has been soft-deleted.
      *
@@ -214,7 +187,9 @@ trait SoftDeleteCustom
      */
     public function syncsDeletedAt(): bool
     {
-        return (bool) $this->syncDeletedAt;
+        return property_exists($this, 'syncDeletedAt')
+            ? (bool) $this->syncDeletedAt
+            : false;
     }
 
     /**
@@ -224,7 +199,9 @@ trait SoftDeleteCustom
      */
     public function getSoftDeleteColumn(): string
     {
-        return $this->softDeleteColumn;
+        return property_exists($this, 'softDeleteColumn')
+            ? $this->softDeleteColumn
+            : 'deleted';
     }
 
     /**
@@ -234,7 +211,7 @@ trait SoftDeleteCustom
      */
     public function getQualifiedSoftDeleteColumn(): string
     {
-        return $this->qualifyColumn($this->softDeleteColumn);
+        return $this->qualifyColumn($this->getSoftDeleteColumn());
     }
 
     /**
@@ -244,7 +221,13 @@ trait SoftDeleteCustom
      */
     public function getDeletedAtColumn(): string
     {
-        return $this->deletedAtColumn;
+        if (defined('static::DELETED_AT')) {
+            return static::DELETED_AT;
+        }
+
+        return property_exists($this, 'deletedAtColumn')
+            ? $this->deletedAtColumn
+            : 'deleted_at';
     }
 
     /**
@@ -254,7 +237,7 @@ trait SoftDeleteCustom
      */
     public function getQualifiedDeletedAtColumn(): string
     {
-        return $this->qualifyColumn($this->deletedAtColumn);
+        return $this->qualifyColumn($this->getDeletedAtColumn());
     }
 
     /**
@@ -264,7 +247,9 @@ trait SoftDeleteCustom
      */
     public function getSoftDeleteActiveValue()
     {
-        return $this->softDeleteActiveValue;
+        return property_exists($this, 'softDeleteActiveValue')
+            ? $this->softDeleteActiveValue
+            : 0;
     }
 
     /**
@@ -274,6 +259,8 @@ trait SoftDeleteCustom
      */
     public function getSoftDeleteDeletedValue()
     {
-        return $this->softDeleteDeletedValue;
+        return property_exists($this, 'softDeleteDeletedValue')
+            ? $this->softDeleteDeletedValue
+            : 1;
     }
 }
