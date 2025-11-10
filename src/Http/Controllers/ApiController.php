@@ -301,7 +301,7 @@ abstract class ApiController extends BaseController
      * @return \Illuminate\Auth\Access\Response
      * @throws \Cronqvist\Api\Exception\ApiAuthorizationException
      */
-    public function authorize($ability, $arguments = [])
+    public function authorize($ability, array $arguments = [])
     {
         try {
             return $this->baseAuthorize($ability, $arguments);
@@ -321,7 +321,7 @@ abstract class ApiController extends BaseController
                 $message = $expired ? 'Not authenticated, token expired.' : 'Not authenticated, token invalid.';
                 $exception = new AuthenticationException($message, ['api']);
             } else {
-                $modelOrClass = empty($arguments) ? $this->modelClass : $arguments;
+                $modelOrClass = empty($arguments) ? $this->modelClass : $arguments[0];
                 $exception = new ApiAuthorizationException(null, null, $exception);
                 $exception->setContext(auth('api')->user(), Route::currentRouteAction(), $ability, $modelOrClass);
             }
