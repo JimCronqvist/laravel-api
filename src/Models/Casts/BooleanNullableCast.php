@@ -1,5 +1,7 @@
 <?php
 
+namespace Cronqvist\Api\Models\Casts;
+
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 
 class BooleanNullableCast implements CastsAttributes
