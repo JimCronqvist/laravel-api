@@ -155,7 +155,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasManyIndex(?User $user, Model $parentModel, string $relation)
     {
@@ -170,7 +170,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasManyShow(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -186,7 +186,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasManyStore(?User $user, Model $parentModel, string $relation)
     {
@@ -201,7 +201,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasManyUpdate(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -216,7 +216,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasManyDestroy(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -231,7 +231,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasOneShow(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -245,7 +245,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasOneUpsert(?User $user, Model $parentModel, string $relation)
     {
@@ -260,7 +260,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationHasOneDestroy(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -275,7 +275,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationBelongsToShow(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -289,7 +289,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationBelongsToManyIndex(?User $user, Model $parentModel, string $relation)
     {
@@ -304,7 +304,7 @@ abstract class Policy
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationBelongsToManyShow(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
@@ -318,7 +318,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationBelongsToManySync(?User $user, Model $parentModel, string $relation)
     {
@@ -332,7 +332,7 @@ abstract class Policy
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
-     * @throws \App\Exceptions\ApiException
+     * @throws ApiException
      */
     public function relationBelongsToManyPivot(?User $user, Model $parentModel, string $relation)
     {
