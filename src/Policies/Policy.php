@@ -176,7 +176,7 @@ abstract class Policy
     {
         if($this->isGuestsAllowed(__FUNCTION__)) return true;
 
-        return $this->isAllowed($user, $relation.'.view') && $this->isAllowedRaw($user, $childModel->getTable().'.view');
+        return $this->isAllowed($user, $relation.'.view');
     }
 
     /**
