@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -95,7 +97,11 @@ abstract class ApiController extends BaseController
      */
     protected function defaultIndex()
     {
-        $this->authorizeMethod('index');
+        // Nested relations are authorized earlier in the relation* methods
+        if(!$this->isNestedRelationRoute()) {
+            $this->authorizeMethod('index');
+        }
+
         $data = [];
         $builder = $this->getBuilder();
         if($builder instanceof QueryBuilder || $builder instanceof Builder) {
@@ -123,7 +129,12 @@ abstract class ApiController extends BaseController
     protected function defaultStore()
     {
         $formRequest = $this->resolveFormRequestFor($this->getModelClass());
-        $this->authorizeMethod('store');
+
+        // Nested relations are authorized earlier in the relation* methods
+        if(!$this->isNestedRelationRoute()) {
+            $this->authorizeMethod('store');
+        }
+
         if($this->service && method_exists($this->service, 'create')) {
             $model = $this->service->create($formRequest->validated());
             $model->refresh();
@@ -164,7 +175,10 @@ abstract class ApiController extends BaseController
             $model = $this->getModelById($id);
         }
 
-        $this->authorizeMethod('show', $model);
+        // Nested relations are authorized earlier in the relation* methods
+        if(!$this->isNestedRelationRoute()) {
+            $this->authorizeMethod('show', $model);
+        }
 
         // Now that we are authorized, eager load any relations that is supposed to be included
         if(!empty($eagerLoads)) {
@@ -206,7 +220,12 @@ abstract class ApiController extends BaseController
         /** @var $model \Illuminate\Database\Eloquent\Model */
         $formRequest = $this->resolveFormRequestFor($this->getModelClass());
         $model = $this->getModelById($id);
-        $this->authorizeMethod('update', $model);
+
+        // Nested relations are authorized earlier in the relation* methods
+        if(!$this->isNestedRelationRoute()) {
+            $this->authorizeMethod('update', $model);
+        }
+
         if($this->service && method_exists($this->service, 'update')) {
             $this->service->update($model, $formRequest->validated());
             $model->refresh();
@@ -230,7 +249,12 @@ abstract class ApiController extends BaseController
     {
         /** @var $model \Illuminate\Database\Eloquent\Model */
         $model = $this->getModelById($id);
-        $this->authorizeMethod('destroy', $model);
+
+        // Nested relations are authorized earlier in the relation* methods
+        if(!$this->isNestedRelationRoute()) {
+            $this->authorizeMethod('destroy', $model);
+        }
+
         if($this->service && method_exists($this->service, 'delete')) {
             $this->service->delete($model);
         } else {
@@ -402,9 +426,14 @@ abstract class ApiController extends BaseController
     /**
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationHasManyShow()
+    public function relationHasManyShow(int $parentId, int $childId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(HasMany::class, $parentId, $childId);
+        ['controller' => $controller, 'child' => $child] = $vars;
+
+        return method_exists($controller, 'show')
+            ? $controller->show($child)
+            : $controller->defaultShow($child->getKey());
     }
 
     /**
@@ -487,18 +516,8 @@ abstract class ApiController extends BaseController
      */
     public function relationBelongsToManyAttach(int $parentId, int $childId)
     {
-        $relation = request()->route('relation');
-        $parentModel = $this->getModelById($parentId);
-
-        $relationInstance = $parentModel->$relation();
-        if(!$relationInstance instanceof BelongsToMany) {
-            abort(500, 'Relation is not a BelongsToMany.');
-        }
-
-        $childModelClass = get_class($relationInstance->getRelated());
-        $child = $childModelClass::findOrFail($childId);
-
-        $this->authorizeNestedRouteMethod('relationBelongsToManyAttach', $parentModel, $relation, $child);
+        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId);
+        ['relation' => $relation, 'relationInstance' => $relationInstance] = $vars;
 
         $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
         if($alreadyAttached) {
@@ -526,15 +545,8 @@ abstract class ApiController extends BaseController
      */
     public function relationBelongsToManyDetach(int $parentId, int $childId)
     {
-        $relation = request()->route('relation');
-        $parentModel = $this->getModelById($parentId);
-
-        $relationInstance = $parentModel->$relation();
-        if(!$relationInstance instanceof BelongsToMany) {
-            abort(500, 'Relation is not a BelongsToMany.');
-        }
-
-        $this->authorizeNestedRouteMethod('relationBelongsToManyDetach', $parentModel, $relation, null);
+        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId);
+        ['relation' => $relation, 'relationInstance' => $relationInstance] = $vars;
 
         $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
         if(!$alreadyAttached) {
@@ -552,5 +564,46 @@ abstract class ApiController extends BaseController
     public function relationBelongsToManyPivot()
     {
         return response()->json(['message' => __METHOD__]);
+    }
+
+    protected function relationProcessNestedRoute(string $relationType, int $parentId, ?int $childId)
+    {
+        $relation = request()->route('relation');
+        $parentModel = $this->getModelById($parentId);
+
+        $relationInstance = $parentModel->$relation();
+        if(!is_a($relationInstance, $relationType)) {
+            abort(500, sprintf('Relation is not a %s.', $relationType));
+        }
+
+        $childModelClass = get_class($relationInstance->getRelated());
+        $child = $childId ? $childModelClass::findOrFail($childId) : null;
+
+        $callingMethod = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
+        $this->authorizeNestedRouteMethod($callingMethod, $parentModel, $relation, $child);
+
+        $controller = null;
+        $controllerAction = Str::of($callingMethod)->snake()->explode('_')->last();
+        if(in_array($controllerAction, ['index', 'show', 'store', 'update', 'destroy'])) {
+            $controller = $this->resolveControllerFor($childModelClass);
+        }
+
+        return compact(
+            'relationType',
+            'parentModel',
+            'relation',
+            'relationInstance',
+            'childModelClass',
+            'child',
+            'controller'
+        );
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isNestedRelationRoute()
+    {
+        return request()->route('relation') !== null;
     }
 }

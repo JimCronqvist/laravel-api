@@ -12,11 +12,12 @@ return [
     |
     */
 
-    'namespace_models'    => 'App\Models',
-    'namespace_policies'  => 'App\Policies',
-    'namespace_resources' => 'App\Http\Resources',
-    'namespace_requests'  => 'App\Http\Requests',
-    'namespace_services'  => 'App\Services\Api',
+    'namespace_models'       => 'App\Models',
+    'namespace_policies'     => 'App\Policies',
+    'namespace_resources'    => 'App\Http\Resources',
+    'namespace_requests'     => 'App\Http\Requests',
+    'namespace_services'     => 'App\Services\Api',
+    'namespace_controllers'  => 'App\Http\Controllers\Api',
 
     /*
     |--------------------------------------------------------------------------

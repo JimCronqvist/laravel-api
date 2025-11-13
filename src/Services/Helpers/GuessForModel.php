@@ -58,6 +58,17 @@ trait GuessForModel
     }
 
     /**
+     * Guess the Controller class for the given model
+     *
+     * @param string $modelClass
+     * @return string
+     */
+    protected function guessControllerClassFor($modelClass)
+    {
+        return $this->guessClassFor('Controller', $modelClass);
+    }
+
+    /**
      * Guess the FormRequest class for the given model
      *
      * @param string $modelClass
@@ -90,5 +101,17 @@ trait GuessForModel
     protected function resolvePolicyFor($modelClass)
     {
         return app()->make($this->guessPolicyClassFor($modelClass));
+    }
+
+    /**
+     * Build a Controller class instance for the given model
+     *
+     * @param string $modelClass
+     * @return \Cronqvist\Api\Http\Controllers\ApiController
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     */
+    protected function resolveControllerFor($modelClass)
+    {
+        return app()->make($this->guessControllerClassFor($modelClass));
     }
 }
