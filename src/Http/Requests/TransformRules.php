@@ -84,4 +84,20 @@ trait TransformRules
     {
         return $this->addRuleToAll($rules, 'sometimes', $skipFields);
     }
+
+    /**
+     * Rename fields in the request, useful within the FormRequest::prepareForValidation() method.
+     *
+     * @param array $fields
+     * @return void
+     */
+    protected function renameFields(array $fields)
+    {
+        foreach($fields as $oldKey => $newKey) {
+            if($this->has($oldKey)) {
+                $this->merge([$newKey => $this->input($oldKey)]);
+                $this->request->remove($oldKey);
+            }
+        }
+    }
 }
