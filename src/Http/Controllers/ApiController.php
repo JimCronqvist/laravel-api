@@ -439,9 +439,13 @@ abstract class ApiController extends BaseController
     /**
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationHasManyStore()
+    public function relationHasManyStore(int $parentId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(HasMany::class, $parentId, null);
+        ['controller' => $controller] = $vars;
+
+        $controllerDispatcher = Route::current()->controllerDispatcher();
+        return $controllerDispatcher->dispatch(Route::current(), $controller, 'store');
     }
 
     /**

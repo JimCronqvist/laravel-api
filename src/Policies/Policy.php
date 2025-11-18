@@ -190,7 +190,9 @@ abstract class Policy
      */
     public function relationHasManyStore(?User $user, Model $parentModel, string $relation)
     {
-        return false;
+        if($this->isGuestsAllowed(__FUNCTION__)) return true;
+
+        return $this->isAllowed($user, $relation.'.store');
     }
 
     /**
