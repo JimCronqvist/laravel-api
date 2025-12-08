@@ -11,6 +11,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -64,6 +65,12 @@ abstract class ApiController extends BaseController
      */
     protected $perPage = 100;
 
+    /**
+     * Set nested eloquent builder
+     *
+     * @var \Illuminate\Database\Eluquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
+     */
+    protected $nestedRouteBuilder;
 
     /**
      * Get the Builder instance used for the index and show actions.
@@ -73,7 +80,26 @@ abstract class ApiController extends BaseController
      */
     protected function getBuilder()
     {
+        return $this->getEloquentBuilder();
+    }
+
+    /**
+     * Get the Eloquent Builder instance used for the self::getBuilder() to use in the index and show actions.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eluquent\Builder
+     * @throws \Exception
+     */
+    protected function getEloquentBuilder()
+    {
+        if($this->isNestedRelationRoute()) {
+            return $this->nestedRouteBuilder;
+        }
         return $this->getModelClass()::query();
+    }
+
+    protected function setNestedRouteBuilder(Relation $builder)
+    {
+        $this->nestedRouteBuilder = $builder;
     }
 
     /**
@@ -418,9 +444,14 @@ abstract class ApiController extends BaseController
     /**
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationHasManyIndex()
+    public function relationHasManyIndex(int $parentId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(HasMany::class, $parentId, null);
+        ['controller' => $controller] = $vars;
+
+        return method_exists($controller, 'index')
+            ? $controller->index()
+            : $controller->defaultIndex();
     }
 
     /**
@@ -581,7 +612,7 @@ abstract class ApiController extends BaseController
         }
 
         $childModelClass = get_class($relationInstance->getRelated());
-        $child = $childId ? $childModelClass::findOrFail($childId) : null;
+        $child = $childId ? $relationInstance->findOrFail($childId) : null;
 
         $callingMethod = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
         $this->authorizeNestedRouteMethod($callingMethod, $parentModel, $relation, $child);
@@ -590,6 +621,7 @@ abstract class ApiController extends BaseController
         $controllerAction = Str::of($callingMethod)->snake()->explode('_')->last();
         if(in_array($controllerAction, ['index', 'show', 'store', 'update', 'destroy'])) {
             $controller = $this->resolveControllerFor($childModelClass);
+            $controller->setNestedRouteBuilder($relationInstance);
         }
 
         return compact(

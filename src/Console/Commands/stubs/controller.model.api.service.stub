@@ -45,7 +45,7 @@ class DummyClass extends ApiController
     protected function getBuilder()
     {
         //$request = $this->getRequest();
-        $builder = QueryBuilder::for(DummyModelClass::class)
+        $builder = QueryBuilder::for($this->getEloquentBuilder())
             //->defaultSort('name')
             ->allowedIncludes([])
             ->allowedFilters([])
