@@ -622,6 +622,19 @@ abstract class ApiController extends BaseController
         if(in_array($controllerAction, ['index', 'show', 'store', 'update', 'destroy'])) {
             $controller = $this->resolveControllerFor($childModelClass);
             $controller->setNestedRouteBuilder($relationInstance);
+            if($controllerAction == 'store') {
+                $request = request();
+                $existingForeignKeyValue = $request->input($relationInstance->getForeignKeyName());
+                if($existingForeignKeyValue !== null && $existingForeignKeyValue !== $relationInstance->getParentKey()) {
+                    abort(400, sprintf(
+                        "An invalid foreign key value was provided for '%s'.",
+                        $relationInstance->getForeignKeyName()
+                    ));
+                }
+                $request->merge([
+                    $relationInstance->getForeignKeyName() => $relationInstance->getParentKey(),
+                ]);
+            }
         }
 
         return compact(
