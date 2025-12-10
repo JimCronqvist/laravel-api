@@ -551,7 +551,7 @@ abstract class ApiController extends BaseController
      */
     public function relationBelongsToManyAttach(int $parentId, int $childId)
     {
-        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId);
+        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId, false);
         ['relation' => $relation, 'relationInstance' => $relationInstance] = $vars;
 
         $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
@@ -580,7 +580,7 @@ abstract class ApiController extends BaseController
      */
     public function relationBelongsToManyDetach(int $parentId, int $childId)
     {
-        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId);
+        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, $childId, false);
         ['relation' => $relation, 'relationInstance' => $relationInstance] = $vars;
 
         $alreadyAttached = $relationInstance->where($relationInstance->getRelatedPivotKeyName(), $childId)->exists();
@@ -601,7 +601,7 @@ abstract class ApiController extends BaseController
         return response()->json(['message' => __METHOD__]);
     }
 
-    protected function relationProcessNestedRoute(string $relationType, int $parentId, ?int $childId)
+    protected function relationProcessNestedRoute(string $relationType, int $parentId, ?int $childId, $scopeChildWithRelation = true)
     {
         $relation = request()->route('relation');
         $parentModel = $this->getModelById($parentId);
@@ -612,7 +612,10 @@ abstract class ApiController extends BaseController
         }
 
         $childModelClass = get_class($relationInstance->getRelated());
-        $child = $childId ? $relationInstance->findOrFail($childId) : null;
+        $child = null;
+        if($childId) {
+            $child = $scopeChildWithRelation ? $relationInstance->findOrFail($childId) : $childModelClass::findOrFail($childId);
+        }
 
         $callingMethod = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
         $this->authorizeNestedRouteMethod($callingMethod, $parentModel, $relation, $child);
