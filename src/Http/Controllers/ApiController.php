@@ -124,9 +124,7 @@ abstract class ApiController extends BaseController
     protected function defaultIndex()
     {
         // Nested relations are authorized earlier in the relation* methods
-        if(!$this->isNestedRelationRoute()) {
-            $this->authorizeMethod('index');
-        }
+        $this->authorizeMethod('index');
 
         $data = [];
         $builder = $this->getBuilder();
@@ -157,9 +155,7 @@ abstract class ApiController extends BaseController
         $formRequest = $this->resolveFormRequestFor($this->getModelClass());
 
         // Nested relations are authorized earlier in the relation* methods
-        if(!$this->isNestedRelationRoute()) {
-            $this->authorizeMethod('store');
-        }
+        $this->authorizeMethod('store');
 
         if($this->service && method_exists($this->service, 'create')) {
             $model = $this->service->create($formRequest->validated());
@@ -202,9 +198,7 @@ abstract class ApiController extends BaseController
         }
 
         // Nested relations are authorized earlier in the relation* methods
-        if(!$this->isNestedRelationRoute()) {
-            $this->authorizeMethod('show', $model);
-        }
+        $this->authorizeMethod('show', $model);
 
         // Now that we are authorized, eager load any relations that is supposed to be included
         if(!empty($eagerLoads)) {
@@ -248,9 +242,7 @@ abstract class ApiController extends BaseController
         $model = $this->getModelById($id);
 
         // Nested relations are authorized earlier in the relation* methods
-        if(!$this->isNestedRelationRoute()) {
-            $this->authorizeMethod('update', $model);
-        }
+        $this->authorizeMethod('update', $model);
 
         if($this->service && method_exists($this->service, 'update')) {
             $this->service->update($model, $formRequest->validated());
@@ -277,9 +269,7 @@ abstract class ApiController extends BaseController
         $model = $this->getModelById($id);
 
         // Nested relations are authorized earlier in the relation* methods
-        if(!$this->isNestedRelationRoute()) {
-            $this->authorizeMethod('destroy', $model);
-        }
+        $this->authorizeMethod('destroy', $model);
 
         if($this->service && method_exists($this->service, 'delete')) {
             $this->service->delete($model);
@@ -338,7 +328,7 @@ abstract class ApiController extends BaseController
      */
     protected function authorizeMethod($method, Model $model = null)
     {
-        if($this->applyPolicy) {
+        if($this->applyPolicy && !$this->isNestedRelationRoute()) {
             $this->authorize($this->resourceAbilityMap()[$method] ?? $method, [$model ?? $this->getModelClass()]);
         }
     }
