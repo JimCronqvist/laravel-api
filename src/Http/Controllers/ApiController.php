@@ -129,7 +129,7 @@ abstract class ApiController extends BaseController
         $data = [];
         $builder = $this->getBuilder();
         if($builder instanceof QueryBuilder || $builder instanceof Builder) {
-            $data = $this->perPage > 0
+            $data = $this->perPage > 0 && !$this->isNestedRelationRoute()
                 ? $builder->paginate($this->getPerPage())
                 : $builder->get();
 
