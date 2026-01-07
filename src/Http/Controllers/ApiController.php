@@ -470,19 +470,33 @@ abstract class ApiController extends BaseController
     }
 
     /**
+     * @param int $parentId
+     * @param int $childId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationHasManyUpdate()
+    public function relationHasManyUpdate(int $parentId, int $childId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(HasMany::class, $parentId, $childId);
+        ['controller' => $controller, 'child' => $child, 'formRequest' => $formRequest] = $vars;
+
+        return method_exists($controller, 'update')
+            ? $controller->update($formRequest, $child)
+            : $controller->defaultUpdate($child->getKey());
     }
 
     /**
+     * @param int $parentId
+     * @param int $childId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationHasManyDestroy()
+    public function relationHasManyDestroy(int $parentId, int $childId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(HasMany::class, $parentId, $childId);
+        ['controller' => $controller, 'child' => $child] = $vars;
+
+        return method_exists($controller, 'destroy')
+            ? $controller->destroy($child)
+            : $controller->defaultDestroy($child->getKey());
     }
 
     /**
@@ -611,6 +625,7 @@ abstract class ApiController extends BaseController
         $this->authorizeNestedRouteMethod($callingMethod, $parentModel, $relation, $child);
 
         $controller = null;
+        $formRequest = null;
         $controllerAction = Str::of($callingMethod)->snake()->explode('_')->last();
         if(in_array($controllerAction, ['index', 'show', 'store', 'update', 'destroy'])) {
             $controller = $this->resolveControllerFor($childModelClass);
@@ -628,6 +643,9 @@ abstract class ApiController extends BaseController
                     $relationInstance->getForeignKeyName() => $relationInstance->getParentKey(),
                 ]);
             }
+            if(in_array($controllerAction, ['store', 'update'])) {
+                $formRequest = $controller->resolveFormRequestFor($childModelClass);
+            }
         }
 
         return compact(
@@ -637,7 +655,8 @@ abstract class ApiController extends BaseController
             'relationInstance',
             'childModelClass',
             'child',
-            'controller'
+            'controller',
+            'formRequest',
         );
     }
 

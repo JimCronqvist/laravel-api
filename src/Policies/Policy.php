@@ -209,7 +209,9 @@ abstract class Policy
      */
     public function relationHasManyUpdate(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
-        return false;
+        if($this->isGuestsAllowed(__FUNCTION__)) return true;
+
+        return $this->isAllowed($user, $relation.'.update');
     }
 
     /**
@@ -224,7 +226,9 @@ abstract class Policy
      */
     public function relationHasManyDestroy(?User $user, Model $parentModel, string $relation, Model $childModel)
     {
-        return false;
+        if($this->isGuestsAllowed(__FUNCTION__)) return true;
+
+        return $this->isAllowed($user, $relation.'.destroy');
     }
 
     /**
