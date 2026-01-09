@@ -191,8 +191,7 @@ abstract class ApiController extends BaseController
             $eagerLoads = $builder->getEagerLoads();
             $builder->setEagerLoads([]);
 
-            $model = $builder->findOrFail($id);
-            Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+            $model = $this->getModelByIdViaBuilder($builder, $id);
         } else {
             $model = $this->getModelById($id);
         }
@@ -209,6 +208,21 @@ abstract class ApiController extends BaseController
         $model = $this->transformModel($model);
         $resource = $this->guessResourceClassFor($this->getModelClass());
         return new $resource($model);
+    }
+
+    /**
+     * Get the model based on an ID using a Builder instance
+     *
+     * @param \Illuminate\Database\Eloquent\Builder|\Spatie\QueryBuilder\QueryBuilder $builder
+     * @param int $id
+     * @return \Illuminate\Database\Eloquent\Model
+     * @throws Exception
+     */
+    protected function getModelByIdViaBuilder($builder, int $id)
+    {
+        $model = $builder->findOrFail($id);
+        Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
+        return $model;
     }
 
     /**
