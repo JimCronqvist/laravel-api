@@ -361,18 +361,23 @@ abstract class ApiController extends BaseController
             return $this->baseAuthorize($ability, $arguments);
         } catch (AuthorizationException $exception) {
             if(auth('api')->user() === null) {
-                // Check if the token has expired or is just invalid, to provide a better error message.
-                $expired = false;
+                // Check if the token is provided, has expired or is just invalid, to provide a better error message.
+                $message = 'Not authenticated, token invalid.';
+                $jwt = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : null; // Passport modifies the request instance, access the global directly
+                if(is_string($jwt) && Str::startsWith($jwt, 'Bearer ')) {
+                    $jwt = Str::substr($jwt, 7);
+                }
+                if(empty($jwt)) {
+                    $message = 'Not authenticated, no token provided.';
+                }
                 try {
-                    $jwt = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : null; // Passport modifies the request instance, access the global directly
-                    if(Str::startsWith($jwt, 'Bearer ')) {
-                        $jwt = Str::substr($jwt, 7);
-                    }
                     $token = Configuration::forUnsecuredSigner()->parser()->parse($jwt);
                     $validAt = new LooseValidAt(new SystemClock(new \DateTimeZone(\date_default_timezone_get())));
                     $expired = Configuration::forUnsecuredSigner()->validator()->validate($token, $validAt) === false;
+                    if($expired) {
+                        $message = 'Not authenticated, token expired.';
+                    }
                 } catch (Exception $e) {}
-                $message = $expired ? 'Not authenticated, token expired.' : 'Not authenticated, token invalid.';
                 $exception = new AuthenticationException($message, ['api']);
             } else {
                 $modelOrClass = empty($arguments) ? $this->modelClass : $arguments[0];
