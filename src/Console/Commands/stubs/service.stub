@@ -15,6 +15,7 @@ class DummyClass
     public function create(array $data)
     {
         $dummyModel = DummyModel::create($data);
+
         return $dummyModel;
     }
 
@@ -28,6 +29,7 @@ class DummyClass
     public function update(DummyModel $dummyModel, array $data)
     {
         $updated = $dummyModel->update($data);
+
         return $updated;
     }
 
@@ -41,6 +43,7 @@ class DummyClass
     public function delete(DummyModel $dummyModel)
     {
         $deleted = $dummyModel->delete();
+
         return $deleted;
     }
 }

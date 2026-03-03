@@ -44,13 +44,12 @@ class DummyClass extends ApiController
      */
     protected function getBuilder()
     {
-        //$request = $this->getRequest();
+        // $request = $this->getRequest();
         $builder = QueryBuilder::for($this->getEloquentBuilder())
             //->defaultSort('name')
             ->allowedIncludes([])
             ->allowedFilters([])
-            ->allowedSorts([])
-        ;
+            ->allowedSorts([]);
 
         return $builder;
     }
@@ -67,6 +66,7 @@ class DummyClass extends ApiController
         $this->authorizeMethod('store');
         $DummyModelVariable = $this->service->create($request->validated());
         $DummyModelVariable->refresh();
+
         return new DummyModelClassResource($DummyModelVariable);
     }
 
@@ -83,6 +83,7 @@ class DummyClass extends ApiController
         $this->authorizeMethod('update', $DummyModelVariable);
         $this->service->update($DummyModelVariable, $request->validated());
         $DummyModelVariable->refresh();
+
         return new DummyModelClassResource($DummyModelVariable);
     }
 
@@ -97,6 +98,7 @@ class DummyClass extends ApiController
     {
         $this->authorizeMethod('destroy', $DummyModelVariable);
         $this->service->delete($DummyModelVariable);
+
         return response()->json(null, 204);
     }
 }
