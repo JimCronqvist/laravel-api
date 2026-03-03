@@ -7,7 +7,7 @@ use Spatie\QueryBuilder\QueryBuilder as BaseQueryBuilder;
 
 class QueryBuilder extends BaseQueryBuilder
 {
-    public function allowedSorts($sorts) : BaseQueryBuilder
+    public function allowedSorts($sorts): static
     {
         $sorts = is_array($sorts) ? $sorts : func_get_args();
         $this->allowedSorts = collect($sorts)->map(function($sort) {

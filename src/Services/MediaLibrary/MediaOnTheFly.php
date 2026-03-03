@@ -8,17 +8,20 @@ use Illuminate\Http\File as FileObject;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use Spatie\Image\Manipulations;
+use Spatie\Image\Enums\Fit;
+use Spatie\Image\Image;
 use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Spatie\MediaLibrary\Support\ImageFactory;
 
 class MediaOnTheFly
 {
-    protected $media;
-    protected $deleteAfterSend = true;
-    protected $manipulations;
-    protected $options = [];
+    protected Media $media;
+
+    protected bool $deleteAfterSend = true;
+
+    protected array $operations = [];
+
+    protected array $options = [];
 
     public function __construct(Media $media)
     {
@@ -56,38 +59,68 @@ class MediaOnTheFly
         return $validated;
     }
 
-    protected function generateManipulations()
+    /**
+     * Convert validated options into a normalized operations array.
+     */
+    protected function generateOperations()
     {
         $options = $this->getValidatedOptions();
+        $operations = [];
 
-        $manipulations = new Manipulations();
+        // Resize - fit/crop
         if(isset($options['width'], $options['height'])) {
-            $fit = empty($options['crop']) ? Manipulations::FIT_MAX : Manipulations::FIT_CROP;
-            $manipulations->fit($fit, $options['width'], $options['height']);
+            $crop = !empty($options['crop']);
+            $operations['fit'] = [
+                'method' => $crop ? 'crop' : 'max',
+                'width' => (int) $options['width'],
+                'height' => (int) $options['height'],
+            ];
+
             unset($options['width'], $options['height'], $options['crop']);
         }
+
+        // Other supported operations
         foreach($options as $option => $value) {
-            if(array_key_exists($option, $options)) {
-                if(in_array($option, ['optimize'])) {
-                    $manipulations->{$option}();
-                } else {
-                    $manipulations->{$option}($value);
-                }
-            }
+            $result = match ($option) {
+                'optimize' => !empty($value) ? ['optimize' => true] : [],
+                'quality'  => ['quality' => (int) $value],
+                'format'   => ['format' => (string) $value],
+                default    => [],
+            };
+            $operations = array_merge($operations, $result);
         }
-        return $manipulations;
+        return $operations;
     }
 
     protected function getFilenameSuffix()
     {
-        $options = current($this->manipulations->toArray());
-        if(!$options) return null;
-        ksort($options);
+        if(empty($this->operations)) return '';
+
+        // Flatten operations into stable key/value pairs similar to the old suffix logic.
+        $flat = [];
+
+        if(isset($this->operations['fit'])) {
+            $fit = $this->operations['fit'];
+            $flat['fit'] = sprintf('%s-%d-%d', $fit['method'], $fit['width'], $fit['height']);
+        }
+        if(!empty($this->operations['optimize'])) {
+            $flat['optimize'] = '1';
+        }
+        if(isset($this->operations['quality'])) {
+            $flat['quality'] = (string) $this->operations['quality'];
+        }
+        if(isset($this->operations['format'])) {
+            $flat['format'] = (string) $this->operations['format'];
+        }
+        if(empty($flat)) {
+            return null;
+        }
+        ksort($flat);
 
         $string = '';
-        foreach($options as $key => $value) {
+        foreach($flat as $key => $value) {
             $string .= substr($key, 0, 1);
-            $string .= strpos($value, '[') === false ? trim($value) : '';
+            $string .= $value;
             $string .= '_';
         }
         return '__' . trim($string, '_');
@@ -111,9 +144,12 @@ class MediaOnTheFly
 
     protected function getExtension()
     {
-        return $this->manipulations->hasManipulation('format')
-            ? $this->manipulations->getFirstManipulationArgument('format')
-            : strtolower($this->media->getExtensionAttribute());
+        // If requested, force output format by extension
+        if(isset($this->operations['format']) && $this->operations['format'] === 'webp') {
+            return 'webp';
+        }
+
+        return strtolower($this->media->getExtensionAttribute());
     }
 
     public function isImage()
@@ -124,7 +160,7 @@ class MediaOnTheFly
             'image/png',
             'image/webp',
             //'image/svg+xml',
-        ]);
+        ], true);
     }
 
     protected function ensureCacheDirExists()
@@ -135,9 +171,35 @@ class MediaOnTheFly
         }
     }
 
+    protected function applyOperations(string $path)
+    {
+        $image = Image::load($path);
+
+        // Resize (fit)
+        if (isset($this->operations['fit'])) {
+            $fit = $this->operations['fit'];
+
+            $fitEnum = ($fit['method'] === 'crop') ? Fit::Crop : Fit::Max;
+            $image->fit($fitEnum, $fit['width'], $fit['height']);
+        }
+
+        // Optimize (requires external tools via spatie/image-optimizer in many setups)
+        if (!empty($this->operations['optimize']) && method_exists($image, 'optimize')) {
+            $image->optimize();
+        }
+
+        // Quality (docs say it applies to JPEG; keep it best-effort)
+        if (isset($this->operations['quality']) && method_exists($image, 'quality')) {
+            $image->quality($this->operations['quality']);
+        }
+
+        // Format is handled by the output filename extension in spatie/image v3.
+        $image->save($path);
+    }
+
     protected function perform()
     {
-        $this->manipulations = $this->generateManipulations();
+        $this->operations = $this->generateOperations();
 
         $cacheDir = static::getCacheDir();
         $localOriginalFile = $this->media->getPath();
@@ -158,7 +220,8 @@ class MediaOnTheFly
             }
         }
 
-        if($this->manipulations->isEmpty() || !$this->isImage()) {
+        // If no operations need to be done, or if it is not an image, return the original file.
+        if(empty($this->operations) || !$this->isImage()) {
             if($this->isDiskDriverLocal()) {
                 // Never delete the original file if that one is used directly
                 $this->deleteAfterSend = false;
@@ -176,11 +239,11 @@ class MediaOnTheFly
                 $this->ensureCacheDirExists();
             }
 
+            // Start from original
             File::copy($localOriginalFile, $transformFile);
 
-            ImageFactory::load($transformFile)
-                ->manipulate($this->manipulations)
-                ->save();
+            // Apply transformations in-place (format determined by extension)
+            $this->applyOperations($transformFile);
         }
 
         return [

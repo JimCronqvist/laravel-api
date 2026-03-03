@@ -18,8 +18,7 @@ class HelperService
     public static function getAllModelClasses()
     {
         $models = [];
-        $user = new SplFileInfo(app_path() . '/User.php', '', '');
-        foreach(array_merge([$user], File::allFiles(app_path('Models'))) as $file) {
+        foreach(File::allFiles(app_path('Models')) as $file) {
             /** @var \SplFileInfo $model */
             $model = str_replace(app_path(), '', $file->getPath()) . '/' . $file->getFilenameWithoutExtension();
             $model = App::getNamespace() . str_replace('/', '\\', trim($model, DIRECTORY_SEPARATOR));

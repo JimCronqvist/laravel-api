@@ -2,7 +2,7 @@
 
 namespace Cronqvist\Api\Policies;
 
-use App\User;
+use App\Models\User;
 use Cronqvist\Api\Exception\ApiException;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ abstract class Policy
     /**
      * Determine whether the user can view any models.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @return bool
      * @throws ApiException
      */
@@ -29,7 +29,7 @@ abstract class Policy
     /**
      * Determine whether the user can view the model.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      * @throws ApiException
@@ -44,7 +44,7 @@ abstract class Policy
     /**
      * Determine whether the user can create models.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @return bool
      * @throws ApiException
      */
@@ -58,7 +58,7 @@ abstract class Policy
     /**
      * Determine whether the user can update the model.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      * @throws ApiException
@@ -73,7 +73,7 @@ abstract class Policy
     /**
      * Determine whether the user can delete the model.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      * @throws ApiException
@@ -88,7 +88,7 @@ abstract class Policy
     /**
      * Determine whether the user can restore the model.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      * @throws ApiException
@@ -103,7 +103,7 @@ abstract class Policy
     /**
      * Determine whether the user can permanently delete the model.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return bool
      * @throws ApiException
@@ -118,7 +118,7 @@ abstract class Policy
     /**
      * Determine whether the user can attach models to the relation.
      *
-     * @param  \App\User|null  $user
+     * @param  \App\Models\User|null  $user
      * @param  \Illuminate\Database\Eloquent\Model  $parentModel
      * @param  string  $relation
      * @param  \Illuminate\Database\Eloquent\Model  $childModel
@@ -135,7 +135,7 @@ abstract class Policy
     /**
      * Determine whether the user can detach models from the relation.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -151,7 +151,7 @@ abstract class Policy
     /**
      * Determine whether the user can view multiple related models.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -167,7 +167,7 @@ abstract class Policy
     /**
      * Determine whether the user can view a specific related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -184,7 +184,7 @@ abstract class Policy
     /**
      * Determine whether the user can create a related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -200,7 +200,7 @@ abstract class Policy
     /**
      * Determine whether the user can update a specific related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -217,7 +217,7 @@ abstract class Policy
     /**
      * Determine whether the user can delete a specific related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -234,7 +234,7 @@ abstract class Policy
     /**
      * Determine whether the user can view the related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -249,7 +249,7 @@ abstract class Policy
     /**
      * Determine whether the user can upsert (create or update) the related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -263,7 +263,7 @@ abstract class Policy
     /**
      * Determine whether the user can delete the related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -278,7 +278,7 @@ abstract class Policy
     /**
      * Determine whether the user can view the related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -293,7 +293,7 @@ abstract class Policy
     /**
      * Determine whether the user can view multiple related models.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -307,7 +307,7 @@ abstract class Policy
     /**
      * Determine whether the user can view a specific related model.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @param \Illuminate\Database\Eloquent\Model $childModel
@@ -322,7 +322,7 @@ abstract class Policy
     /**
      * Determine whether the user can sync related models.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool
@@ -336,7 +336,7 @@ abstract class Policy
     /**
      * Determine whether the user can view or manipulate pivot attributes of the relation.
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $parentModel
      * @param string $relation
      * @return bool

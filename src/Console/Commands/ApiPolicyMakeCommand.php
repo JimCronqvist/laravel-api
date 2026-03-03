@@ -51,11 +51,7 @@ class ApiPolicyMakeCommand extends BasePolicyMakeCommand
     protected function replaceModel($stub, $model)
     {
         $stub = parent::replaceModel($stub, $model);
-        if($model == 'User') {
-            $model = app()->getNamespace() . 'User';
-        } else {
-            $model = app()->getNamespace() . 'Models\\' . str_replace('/', '\\', $model);
-        }
+        $model = app()->getNamespace() . 'Models\\' . str_replace('/', '\\', $model);
         $table = (new $model)->getTable();
         return str_replace('DummyTable', $table, $stub);
     }

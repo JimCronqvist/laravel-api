@@ -81,7 +81,6 @@ class ApiAllMakeCommand extends Command
                 ? config('api.namespace_models', 'App\Models') . '\\' . Str::studly(Str::singular($table))
                 : get_class($model);
             $name = str_replace(config('api.namespace_models', 'App\Models') .'\\', '', $class);
-            $name = str_replace('App\User', 'User', $name); // Handle the default User class from Laravel
             $name = str_replace('\\', '/', $name);
 
             $this->line("Generate API for table '" . $table . "' (" . $class . ')');

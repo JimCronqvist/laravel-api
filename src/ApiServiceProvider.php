@@ -91,10 +91,6 @@ class ApiServiceProvider extends BaseServiceProvider
      */
     protected function registerPolicies()
     {
-        // Map the User::class to UserPolicy::class, as that does not match the below naming structure
-        // User.php is not located in the Models folder
-        Gate::policy('App\User', config('api.namespace_policies', 'App\Policies') . '\UserPolicy');
-
         // Change the naming convention for Laravel to look for Policy classes (default does not assume a "Models" dir)
         Gate::guessPolicyNamesUsing(function($modelClass) {
             return $this->guessPolicyClassFor($modelClass);

@@ -2,7 +2,7 @@
 
 namespace Cronqvist\Api\Policies;
 
-use App\User;
+use App\Models\User;
 use Cronqvist\Api\Exception\ApiException;
 use Illuminate\Database\Eloquent\Model;
 
@@ -38,7 +38,7 @@ trait IsAllowed
     /**
      * Check if the user is allowed to request a specific method, without wrapping the ability with the model table name
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param $ability
      * @return bool
      */
@@ -52,7 +52,7 @@ trait IsAllowed
     /**
      * Check if the user is allowed to request a specific method, this will wrap the ability with the model table name
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param $ability
      * @return bool
      * @throws ApiException
@@ -68,7 +68,7 @@ trait IsAllowed
     /**
      * Check if the user is allowed to request a specific method, when the user is associated with the model
      *
-     * @param \App\User|null $user
+     * @param \App\Models\User|null $user
      * @param \Illuminate\Database\Eloquent\Model $model
      * @param string|null $ability
      * @return bool
@@ -85,7 +85,7 @@ trait IsAllowed
     /**
      * Check if the user is authorized for the specific ability
      *
-     * @param \App\User $user
+     * @param \App\Models\User $user
      * @param $ability
      * @return mixed
      * @throws ApiException

@@ -77,7 +77,7 @@ class ApiMakeCommand extends Command
         ]);
         $this->call('make:apiPolicy', [
             'name' => Str::singular($name).'Policy',
-            '--model' => ($name === 'User' ? 'User' : $name)
+            '--model' => $name
         ]);
 
         $this->line('Please add the new routes in routes/api.php', 'important');
