@@ -8,7 +8,7 @@ use Cronqvist\Api\Services\Filesystem\DiskConfig;
 
 class MediaCollection extends SpatieMediaCollection
 {
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         if (!($this->formFieldName ?? $this->collectionName)) {
             return [];
