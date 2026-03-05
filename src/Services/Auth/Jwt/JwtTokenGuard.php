@@ -68,7 +68,7 @@ class JwtTokenGuard extends TokenGuard
         $this->initJwtConfiguration();
 
         try {
-            $this->validate($jwt);
+            $this->validateJwt($jwt);
         } catch(OAuthServerException $exception) {
             return null;
         }
@@ -135,7 +135,7 @@ class JwtTokenGuard extends TokenGuard
      * @param string $jwt
      * @throws \League\OAuth2\Server\Exception\OAuthServerException
      */
-    protected function validate(string $jwt)
+    protected function validateJwt(string $jwt)
     {
         try {
             // Attempt to parse and validate the JWT
