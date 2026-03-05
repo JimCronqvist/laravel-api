@@ -36,28 +36,30 @@ class JwtTokenGuard extends TokenGuard
     /**
      * Get the authenticated user
      *
-     * @param Request $request
      * @return \Illuminate\Contracts\Auth\Authenticatable|mixed|null
      */
-    public function user(Request $request)
+    public function user()
     {
-        $jwt = $this->getValidatedJwt($request);
+        if(!is_null($this->user)) {
+            return $this->user;
+        }
+
+        $jwt = $this->getValidatedJwt();
         if(!$jwt) {
             return null;
         }
 
-        return $this->findUser($jwt);
+        return $this->user = $this->findUser($jwt);
     }
 
     /**
      * Get the validated JWT
      *
-     * @param Request $request
      * @return string|null
      */
-    protected function getValidatedJwt(Request $request)
+    protected function getValidatedJwt()
     {
-        $jwt = $this->getJwt($request);
+        $jwt = $this->getJwt();
         if(!$jwt) {
             return null;
         }
@@ -90,17 +92,16 @@ class JwtTokenGuard extends TokenGuard
     /**
      * Get the JWT from the request
      *
-     * @param Request $request
      * @return array|string|null
      */
-    protected function getJwt(Request $request)
+    protected function getJwt()
     {
-        if ($request->bearerToken()) {
-            $header = $request->bearerToken();
+        if($this->request->bearerToken()) {
+            $header = $this->request->bearerToken();
             return \trim((string) \preg_replace('/^(?:\s+)?Bearer\s/', '', $header));
-        } elseif ($request->cookie(Passport::cookie())) {
+        } elseif ($this->request->cookie(Passport::cookie())) {
             try {
-                return $this->decodeJwtTokenCookie($request);
+                return $this->decodeJwtTokenCookie($this->request);
             } catch (\Exception $e) {}
         }
         return null;
