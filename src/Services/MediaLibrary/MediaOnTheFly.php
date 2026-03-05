@@ -149,7 +149,7 @@ class MediaOnTheFly
             return 'webp';
         }
 
-        return strtolower($this->media->getExtensionAttribute());
+        return strtolower($this->media->extension());
     }
 
     public function isImage()
@@ -205,7 +205,7 @@ class MediaOnTheFly
         $localOriginalFile = $this->media->getPath();
 
         if(!$this->isDiskDriverLocal()) {
-            $localOriginalFile = $cacheDir . $this->media->uuid . '.' . strtolower($this->media->getExtensionAttribute());
+            $localOriginalFile = $cacheDir . $this->media->uuid . '.' . strtolower($this->media->extension());
             if(!is_readable($localOriginalFile) || File::size($localOriginalFile) == 0) {
                 $this->ensureCacheDirExists();
                 try {
