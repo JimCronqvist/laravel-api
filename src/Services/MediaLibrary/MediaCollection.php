@@ -37,6 +37,6 @@ class MediaCollection extends SpatieMediaCollection
                 'created_at' => $media->created_at,
                 'updated_at' => $media->updated_at,
             ];
-        })->keyBy('uuid');
+        })->keyBy('uuid')->toArray();
     }
 }
