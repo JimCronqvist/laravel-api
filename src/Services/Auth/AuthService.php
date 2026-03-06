@@ -260,7 +260,7 @@ class AuthService
                 Passport::keyPath('oauth-private.key'),
             ];
             if(!is_readable($publicKey) || !is_readable($privateKey)) {
-                throw new ApiPassportException("Passport encryption keys are missing. 
+                throw new ApiPassportException("Passport encryption keys are missing.
                 Please run 'php artisan passport:install'");
             }
         }
@@ -351,10 +351,21 @@ class AuthService
 
         $key = 'refreshToken:' . $refreshToken;
         $refresh = function($key, $refreshToken) {
-            return Cache::remember($key, static::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
-                $data = $this->getOAuthParams('refresh_token') + ['refresh_token' => $refreshToken];
-                return $this->processPassportAccessToken($this->requestPassportAccessToken($data));
-            });
+            try {
+                return Cache::remember($key, static::$cacheRefreshTokenRequestsForSeconds, function() use($refreshToken) {
+                    $data = $this->getOAuthParams('refresh_token') + ['refresh_token' => $refreshToken];
+                    return $this->processPassportAccessToken($this->requestPassportAccessToken($data));
+                });
+            } catch (OAuthServerException $exception) {
+                // The refresh token is invalid.
+                if($exception->getCode() === 8) {
+                    return response()->json(['message' => 'The refresh token is invalid. Please login again.'], 401)
+                        ->cookie(Cookie::forget(static::$refreshToken, $this->getRefreshRoutePath()))
+                        ->cookie(Cookie::forget(static::$accessToken));
+                } else {
+                    throw $exception;
+                }
+            }
         };
 
         // Utilize atomic lock and cache to handle race conditions, as a refresh token can only be refreshed one time.
