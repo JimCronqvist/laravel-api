@@ -67,7 +67,7 @@ class MediaOnTheFly
         $options = $this->getValidatedOptions();
         $operations = [];
 
-        // Resize - fit/crop
+        // Resize
         if(isset($options['width'], $options['height'])) {
             $crop = !empty($options['crop']);
             $operations['fit'] = [
@@ -75,9 +75,12 @@ class MediaOnTheFly
                 'width' => (int) $options['width'],
                 'height' => (int) $options['height'],
             ];
-
-            unset($options['width'], $options['height'], $options['crop']);
+        } else if(isset($options['width'])) {
+            $operations['width'] = (int) $options['width'];
+        } else if(isset($options['height'])) {
+            $operations['height'] = (int) $options['height'];
         }
+        unset($options['width'], $options['height'], $options['crop']);
 
         // Other supported operations
         foreach($options as $option => $value) {
@@ -102,6 +105,12 @@ class MediaOnTheFly
         if(isset($this->operations['fit'])) {
             $fit = $this->operations['fit'];
             $flat['fit'] = sprintf('%s-%d-%d', $fit['method'], $fit['width'], $fit['height']);
+        }
+        if(isset($this->operations['width'])) {
+            $flat['width'] = (string) $this->operations['width'];
+        }
+        if(isset($this->operations['height'])) {
+            $flat['height'] = (string) $this->operations['height'];
         }
         if(!empty($this->operations['optimize'])) {
             $flat['optimize'] = '1';
@@ -175,21 +184,24 @@ class MediaOnTheFly
     {
         $image = Image::load($path);
 
-        // Resize (fit)
-        if (isset($this->operations['fit'])) {
+        // Resize
+        if(isset($this->operations['fit'])) {
             $fit = $this->operations['fit'];
-
             $fitEnum = ($fit['method'] === 'crop') ? Fit::Crop : Fit::Max;
             $image->fit($fitEnum, $fit['width'], $fit['height']);
+        } else if(isset($this->operations['width'])) {
+            $image->width($this->operations['width']);
+        } else if(isset($this->operations['height'])) {
+            $image->height($this->operations['height']);
         }
 
         // Optimize (requires external tools via spatie/image-optimizer in many setups)
-        if (!empty($this->operations['optimize']) && method_exists($image, 'optimize')) {
+        if(!empty($this->operations['optimize']) && method_exists($image, 'optimize')) {
             $image->optimize();
         }
 
         // Quality (docs say it applies to JPEG; keep it best-effort)
-        if (isset($this->operations['quality']) && method_exists($image, 'quality')) {
+        if(isset($this->operations['quality']) && method_exists($image, 'quality')) {
             $image->quality($this->operations['quality']);
         }
 
