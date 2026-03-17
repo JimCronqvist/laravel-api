@@ -68,14 +68,14 @@ abstract class ApiController extends BaseController
     /**
      * Set nested eloquent builder
      *
-     * @var \Illuminate\Database\Eluquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
+     * @var \Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eluquent\Builder
      */
     protected $nestedRouteBuilder;
 
     /**
      * Get the Builder instance used for the index and show actions.
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation|\Spatie\QueryBuilder\QueryBuilder
      * @throws \Exception
      */
     protected function getBuilder()
@@ -86,12 +86,12 @@ abstract class ApiController extends BaseController
     /**
      * Get the Eloquent Builder instance used for the self::getBuilder() to use in the index and show actions.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\Relation|\Illuminate\Database\Eluquent\Builder
+     * @return \Illuminate\Database\Eluquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
      * @throws \Exception
      */
     protected function getEloquentBuilder()
     {
-        if($this->isNestedRelationRoute()) {
+        if($this->isWithinNestedRelationRouteController()) {
             return $this->nestedRouteBuilder;
         }
         return $this->getModelClass()::query();
@@ -128,8 +128,9 @@ abstract class ApiController extends BaseController
 
         $data = [];
         $builder = $this->getBuilder();
+        $this->ensureBuilderIsForModel($builder);
         if($builder instanceof QueryBuilder || $builder instanceof Builder) {
-            $data = $this->perPage > 0 && !$this->isNestedRelationRoute()
+            $data = $this->perPage > 0 && !$this->isWithinNestedRelationRouteController()
                 ? $builder->paginate($this->getPerPage())
                 : $builder->get();
 
@@ -213,16 +214,44 @@ abstract class ApiController extends BaseController
     /**
      * Get the model based on an ID using a Builder instance
      *
-     * @param \Illuminate\Database\Eloquent\Builder|\Spatie\QueryBuilder\QueryBuilder $builder
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation|\Spatie\QueryBuilder\QueryBuilder $builder
      * @param int $id
      * @return \Illuminate\Database\Eloquent\Model
      * @throws Exception
      */
     protected function getModelByIdViaBuilder($builder, int $id)
     {
+        $this->ensureBuilderIsForModel($builder);
         $model = $builder->findOrFail($id);
         Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         return $model;
+    }
+
+    /**
+     * Ensure that the provided Builder instance is for the correct model, and if we are within a nested relation route, that it is the same instance as the one set for the controller.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation|\Spatie\QueryBuilder\QueryBuilder $builder
+     * @throws Exception
+     */
+    protected function ensureBuilderIsForModel($builder)
+    {
+        if($this->isNestedRelationRoute() && $builder !== $this->getEloquentBuilder()) {
+            throw new Exception('Nested relation routes must retrieve the model via the nested Builder instance, using getEloquentBuilder().');
+        }
+
+        $modelClass = $this->getModelClass();
+        if($builder instanceof QueryBuilder) {
+            $builderModelClass = get_class($builder->getModel());
+        } else if($builder instanceof Relation) {
+            $builderModelClass = get_class($builder->getRelated());
+        } else if($builder instanceof Builder) {
+            $builderModelClass = get_class($builder->getModel());
+        } else {
+            throw new Exception('Invalid builder instance provided.');
+        }
+        if($modelClass !== $builderModelClass) {
+            throw new Exception(sprintf('The provided builder instance is for model %s, but expected %s.', $builderModelClass, $modelClass));
+        }
     }
 
     /**
@@ -234,6 +263,9 @@ abstract class ApiController extends BaseController
      */
     protected function getModelById(int $id)
     {
+        if($this->isWithinNestedRelationRouteController()) {
+            return $this->getModelByIdViaBuilder($this->getEloquentBuilder(), $id);
+        }
         $model = $this->getModelClass()::findOrFail($id);
         Route::current()->setParameter(Route::current()->parameterNames()[0], $model);
         return $model;
@@ -551,11 +583,17 @@ abstract class ApiController extends BaseController
     }
 
     /**
+     * @param int $parentId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function relationBelongsToManyIndex()
+    public function relationBelongsToManyIndex(int $parentId)
     {
-        return response()->json(['message' => __METHOD__]);
+        $vars = $this->relationProcessNestedRoute(BelongsToMany::class, $parentId, null);
+        ['controller' => $controller] = $vars;
+
+        return method_exists($controller, 'index')
+            ? $controller->index()
+            : $controller->defaultIndex();
     }
 
     /**
@@ -637,7 +675,9 @@ abstract class ApiController extends BaseController
         $childModelClass = get_class($relationInstance->getRelated());
         $child = null;
         if($childId) {
-            $child = $scopeChildWithRelation ? $relationInstance->findOrFail($childId) : $childModelClass::findOrFail($childId);
+            $child = $scopeChildWithRelation
+                ? $relationInstance->findOrFail($childId)
+                : $childModelClass::findOrFail($childId);
         }
 
         $callingMethod = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
@@ -685,5 +725,10 @@ abstract class ApiController extends BaseController
     protected function isNestedRelationRoute()
     {
         return request()->route('relation') !== null;
+    }
+
+    protected function isWithinNestedRelationRouteController()
+    {
+        return $this->nestedRouteBuilder !== null;
     }
 }
