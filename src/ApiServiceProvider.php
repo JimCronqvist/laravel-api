@@ -16,8 +16,10 @@ use Cronqvist\Api\Http\Middleware\ApiGuardMiddleware;
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
 use Cronqvist\Api\Services\Helpers\AccessInstance;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Routing\ResourceRegistrar;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
@@ -94,6 +96,26 @@ class ApiServiceProvider extends BaseServiceProvider
         // Change the naming convention for Laravel to look for Policy classes (default does not assume a "Models" dir)
         Gate::guessPolicyNamesUsing(function($modelClass) {
             return $this->guessPolicyClassFor($modelClass);
+        });
+
+        // Save the result of the authorization checks, for context to error messages, etc. before the after callbacks are executed.
+        Gate::after(function ($user, $ability, $result, $arguments) {
+            $target = (is_array($arguments) ? $arguments : [$arguments])[0] ?? null;
+            $targetClass = is_object($target) ? get_class($target) : (is_string($target) ? $target : null);
+            $policy = $targetClass ? Gate::getPolicyFor($targetClass) : null;
+
+            Context::push('api:gate', [
+                'user_id' => $user?->getAuthIdentifier(),
+                'ability' => $ability,
+                'policy' => $policy ? get_class($policy) : null,
+                'policy_method' => $policy ? (str_contains($ability, '-') ? Str::camel($ability) : $ability) : null,
+                'result' => $result,
+                'arguments' => array_map(function($arg) {
+                    return $arg instanceof Model
+                        ? ['class' => get_class($arg), 'id' => $arg->getKey()]
+                        : $arg;
+                }, $arguments),
+            ]);
         });
 
         // If you are a "Super Admin", always pass the authorization checks
