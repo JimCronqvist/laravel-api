@@ -2,6 +2,7 @@
 
 namespace Cronqvist\Api\Http\Controllers;
 
+use BadMethodCallException;
 use Cronqvist\Api\Exception\ApiAuthorizationException;
 use Cronqvist\Api\Services\Auth\Utils;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
@@ -19,7 +20,6 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Pagination\AbstractPaginator;
-use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Lcobucci\Clock\SystemClock;
@@ -28,9 +28,11 @@ use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Spatie\QueryBuilder\QueryBuilderRequest;
 use Exception;
 
-abstract class ApiController extends BaseController
+abstract class ApiController
 {
-    use DispatchesJobs, ValidatesRequests;
+    // @todo Remove this trait as it is no longer a recommended Laravel practice to use it like this.
+    // @todo Instead, we should be using policies and gates directly in the relevant controllers or services.
+    // @todo Change to Gate::authorize(...) within the authorize() method, and remove the AuthorizesRequests trait entirely.
     use AuthorizesRequests {
         authorize as protected baseAuthorize;
     }
@@ -444,12 +446,24 @@ abstract class ApiController extends BaseController
     }
 
     /**
+     * Execute an action on the controller.
+     *
+     * @param  string  $method
+     * @param  array  $parameters
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function callAction($method, $parameters)
+    {
+        return $this->{$method}(...array_values($parameters));
+    }
+
+    /**
      * Handle calls to missing methods on the controller. Check if the default methods exist first.
      *
      * @param string $method
      * @param array $parameters
      * @return mixed
-     * @throws \BadMethodCallException
+     * @throws BadMethodCallException
      */
     public function __call($method, $parameters)
     {
@@ -457,7 +471,7 @@ abstract class ApiController extends BaseController
         if(method_exists($this, $defaultMethod)) {
             return $this->{$defaultMethod}(...$parameters);
         }
-        return parent::__call($method, $parameters);
+        throw new BadMethodCallException(sprintf('Method %s::%s does not exist.', static::class, $method));
     }
 
     /**
