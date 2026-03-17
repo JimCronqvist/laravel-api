@@ -301,7 +301,9 @@ abstract class Policy
      */
     public function relationBelongsToManyIndex(?User $user, Model $parentModel, string $relation)
     {
-        return false;
+        if($this->isGuestsAllowed(__FUNCTION__)) return true;
+
+        return $this->isAllowed($user, $relation.'.viewAny');
     }
 
     /**

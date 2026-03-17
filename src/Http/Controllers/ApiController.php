@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
 use Spatie\QueryBuilder\QueryBuilderRequest;
 use Exception;
 
@@ -237,8 +238,13 @@ abstract class ApiController
      */
     protected function ensureBuilderIsForModel($builder)
     {
-        if($this->isNestedRelationRoute() && $builder !== $this->getEloquentBuilder()) {
-            throw new Exception('Nested relation routes must retrieve the model via the nested Builder instance, using getEloquentBuilder().');
+        if($this->isNestedRelationRoute()) {
+            if($builder instanceof SpatieQueryBuilder) {
+                $builder = $builder->getSubject();
+            }
+            if($builder !== $this->getEloquentBuilder()) {
+                throw new Exception('Nested relation routes must retrieve the model via the nested Builder instance, using getEloquentBuilder().');
+            }
         }
 
         $modelClass = $this->getModelClass();
