@@ -184,7 +184,9 @@ abstract class ApiController
         $builder = $this->getBuilder();
         if($builder instanceof QueryBuilder || $builder instanceof Builder) {
             // Remove unnecessary clauses from the queries that will only decrease performance
-            $builder->setQuery($builder->getQuery()->cloneWithout([
+            /** @var \Illuminate\Database\Query\Builder $query */
+            $query = $builder->getQuery() instanceof Builder ? $builder->getBaseQuery() : $builder->getQuery();
+            $builder->setQuery($query->cloneWithout([
                 'joins', 'wheres', 'groups', 'havings', 'orders', 'offset',
                 'unions', 'unionLimit', 'unionOffset', 'unionOrders'
             ])->cloneWithoutBindings(['join', 'where', 'groupBy', 'having', 'order', 'union', 'unionOrder']));
