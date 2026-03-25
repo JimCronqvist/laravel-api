@@ -758,9 +758,9 @@ abstract class ApiController
         return $resourceClass::collection($data);
     }
 
-    protected function toResource($data, ?string $resourceClass = null): JsonResource
+    protected function toResource(?Model $model, ?string $resourceClass = null): JsonResource
     {
         $resourceClass = $resourceClass ?? $this->guessResourceClassFor($this->getModelClass());
-        return new $resourceClass($data);
+        return new $resourceClass($model);
     }
 }
