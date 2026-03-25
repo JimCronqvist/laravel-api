@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Database;
+namespace Cronqvist\Api\Services\Eloquent;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
