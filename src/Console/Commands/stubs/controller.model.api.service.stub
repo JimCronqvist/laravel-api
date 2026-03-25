@@ -67,7 +67,7 @@ class DummyClass extends ApiController
         $DummyModelVariable = $this->service->create($request->validated());
         $DummyModelVariable->refresh();
 
-        return new DummyModelClassResource($DummyModelVariable);
+        return $this->toResource($DummyModelVariable);
     }
 
     /**
@@ -84,7 +84,7 @@ class DummyClass extends ApiController
         $this->service->update($DummyModelVariable, $request->validated());
         $DummyModelVariable->refresh();
 
-        return new DummyModelClassResource($DummyModelVariable);
+        return $this->toResource($DummyModelVariable);
     }
 
     /**

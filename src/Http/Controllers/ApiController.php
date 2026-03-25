@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -120,7 +122,7 @@ abstract class ApiController
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Resources\Json\JsonResource
+     * @return \Illuminate\Http\Resources\Json\ResourceCollection
      * @throws \Illuminate\Auth\Access\AuthorizationException
      * @throws \Exception
      */
@@ -143,8 +145,7 @@ abstract class ApiController
                 $data = $this->transformData($data);
             }
         }
-        $resource = $this->guessResourceClassFor($this->getModelClass());
-        return $resource::collection($data);
+        return $this->toResourceCollection($data);
     }
 
     /**
@@ -168,8 +169,7 @@ abstract class ApiController
             $model = $this->getModelClass()::create($formRequest->validated());
             $model->refresh();
         }
-        $resource = $this->guessResourceClassFor($this->getModelClass());
-        return new $resource($model);
+        return $this->toResource($model);
     }
 
     /**
@@ -212,8 +212,7 @@ abstract class ApiController
         }
 
         $model = $this->transformModel($model);
-        $resource = $this->guessResourceClassFor($this->getModelClass());
-        return new $resource($model);
+        return $this->toResource($model);
     }
 
     /**
@@ -307,8 +306,7 @@ abstract class ApiController
             $model->update($formRequest->validated());
             $model->refresh();
         }
-        $resource = $this->guessResourceClassFor($this->getModelClass());
-        return new $resource($model);
+        return $this->toResource($model);
     }
 
     /**
@@ -752,5 +750,17 @@ abstract class ApiController
     protected function isWithinNestedRelationRouteController()
     {
         return $this->nestedRouteBuilder !== null;
+    }
+
+    protected function toResourceCollection($data, ?string $resourceClass = null): ResourceCollection
+    {
+        $resourceClass = $resourceClass ?? $this->guessResourceClassFor($this->getModelClass());
+        return $resourceClass::collection($data);
+    }
+
+    protected function toResource($data, ?string $resourceClass = null): JsonResource
+    {
+        $resourceClass = $resourceClass ?? $this->guessResourceClassFor($this->getModelClass());
+        return new $resourceClass($data);
     }
 }
