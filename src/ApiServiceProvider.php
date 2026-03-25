@@ -2,7 +2,6 @@
 
 namespace Cronqvist\Api;
 
-use App\Support\Database\JoinDeduplicator;
 use Cronqvist\Api\Console\Commands\ApiAllMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiControllerMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiCreatePersonalAccessToken;
@@ -15,6 +14,7 @@ use Cronqvist\Api\Console\Commands\ApiServiceMakeCommand;
 use Cronqvist\Api\Http\Middleware\AccessTokenCookieMiddleware;
 use Cronqvist\Api\Http\Middleware\ApiGuardMiddleware;
 use Cronqvist\Api\Http\Middleware\JsonMiddleware;
+use Cronqvist\Api\Services\Eloquent\JoinDeduplicator;
 use Cronqvist\Api\Services\Helpers\AccessInstance;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Database\Eloquent\Model;
