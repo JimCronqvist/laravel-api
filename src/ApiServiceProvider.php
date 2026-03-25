@@ -2,6 +2,7 @@
 
 namespace Cronqvist\Api;
 
+use App\Support\Database\JoinDeduplicator;
 use Cronqvist\Api\Console\Commands\ApiAllMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiControllerMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiCreatePersonalAccessToken;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,6 +67,7 @@ class ApiServiceProvider extends BaseServiceProvider
         $this->registerPolicies();
         $this->registerRouterMediaMacro();
         $this->registerRouterNestedRoutesMacro();
+        $this->registerEloquentMacros();
     }
 
     /**
@@ -266,5 +269,14 @@ class ApiServiceProvider extends BaseServiceProvider
 
             return $this;
         });
+    }
+
+    protected function registerEloquentMacros()
+    {
+        Builder::macro('deduplicateJoins', function() {
+            /** @var Builder $this */
+            return app(JoinDeduplicator::class)->deduplicate($this);
+        });
+
     }
 }
