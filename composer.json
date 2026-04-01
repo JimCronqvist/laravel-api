@@ -22,7 +22,10 @@
   "suggest": {
     "spatie/laravel-medialibrary": "Required to use Media functionality",
     "laravel/passport": "Required to use Passport functionality",
-    "spatie/laravel-permission": "Highly recommended to effectively handle the built in gates with an RBAC style permission system"
+    "spatie/laravel-permission": "Highly recommended to effectively handle the built in gates with an RBAC style permission system",
+    "laravel/socialite": "For SSO authentication",
+    "socialiteproviders/microsoft": "For Microsoft SSO authentication",
+    "socialiteproviders/okta": "For Okta SSO authentication"
   },
   "conflict": {
     "spatie/laravel-medialibrary": "<11.0.0",
@@ -34,7 +37,8 @@
   "prefer-stable": true,
   "autoload": {
     "psr-4": {
-      "Cronqvist\\Api\\": "src/"
+      "Cronqvist\\Api\\": "src/",
+      "Cronqvist\\Api\\Auth\\SSO\\": "src/Auth/"
     }
   },
   "extra": {

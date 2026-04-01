@@ -2,6 +2,7 @@
 
 namespace Cronqvist\Api;
 
+use Cronqvist\Api\Auth\SSO\SsoServiceProvider;
 use Cronqvist\Api\Console\Commands\ApiAllMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiControllerMakeCommand;
 use Cronqvist\Api\Console\Commands\ApiCreatePersonalAccessToken;
@@ -68,6 +69,8 @@ class ApiServiceProvider extends BaseServiceProvider
         $this->registerRouterMediaMacro();
         $this->registerRouterNestedRoutesMacro();
         $this->registerEloquentMacros();
+
+        (new SsoServiceProvider($this->app))->boot();
     }
 
     /**
@@ -171,6 +174,8 @@ class ApiServiceProvider extends BaseServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__.'/config/api.php', 'api');
+
+        (new SsoServiceProvider($this->app))->register();
     }
 
     /**
