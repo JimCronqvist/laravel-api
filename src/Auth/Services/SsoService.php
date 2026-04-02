@@ -2,11 +2,13 @@
 
 namespace Cronqvist\Api\Auth\SSO\Services;
 
+use Cronqvist\Api\Auth\SSO\Models\SsoDomain;
 use Cronqvist\Api\Auth\SSO\Rules\EmailOrDomain;
 use Cronqvist\Api\Services\Auth\AuthService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Cronqvist\Api\Auth\SSO\Adapters\SocialiteFactory as SsoSocialiteFactory;
@@ -124,6 +126,62 @@ class SsoService
         }
     }
 
+    public function providers(?string $emailOrDomain)
+    {
+        Validator::validate(
+            ['emailOrDomain' => $emailOrDomain],
+            ['emailOrDomain' => ['nullable', new EmailOrDomain()]],
+        );
+
+        [$email, $domain] = $this->splitEmailAndDomain($emailOrDomain);
+
+        $ssoDomain = null;
+        if($domain) {
+            $ssoDomain = SsoDomain::query()
+                ->where('domain', $domain)
+                ->where('verified', 1)
+                ->first();
+        }
+
+        $currentUserProvider = null;
+        if($email) {
+            $user = $this->findUserByEmail($email);
+            if($user) {
+                $currentUserProvider = $user->getSsoProvider();
+            }
+        }
+
+        // No domain → fallback to default providers
+        if(!$ssoDomain) {
+            $globalProviders = static::getGlobalProviders();
+            return [
+                'providers' => $currentUserProvider
+                    ? Arr::onlyValues($globalProviders, $currentUserProvider)
+                    : $globalProviders,
+                'mode' => SsoDomain::LOGIN_MODE_SSO_OPTIONAL,
+            ];
+        }
+
+        // If the user has a provider that is allowed for the domain, only return that one to avoid the wrong choice.
+        $allowedProviders = $ssoDomain->allowed_providers;
+        if($currentUserProvider && in_array($currentUserProvider, $allowedProviders)) {
+            $allowedProviders = [$currentUserProvider];
+        }
+
+        if(empty($allowedProviders)) {
+            return [
+                'providers' => [],
+                'mode' => $ssoDomain->login_mode,
+                'error' => 'SSO not allowed. No providers configured for this ' . ($email ? 'email' : 'domain') . '.',
+            ];
+        }
+
+        return [
+            'providers' => $allowedProviders,
+            'mode' => $ssoDomain->login_mode,
+        ];
+    }
+
     protected function getFrontendExchangeFlowUrl(): string
     {
         $frontendUrl = '/';
@@ -145,7 +203,6 @@ class SsoService
 
     protected function respondDirectly(Authenticatable $user, Request $request): RedirectResponse
     {
-        // @todo REPLACE THIS BY OAuthTokenService::class ?
         $authService = app(AuthService::class);
         $response = $authService->loginAs($user);
 
