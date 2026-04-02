@@ -10,31 +10,32 @@ use Illuminate\Support\Str;
 
 class SsoProviderResolver
 {
-    public function resolve(string $email, string $provider): array
+    public function resolve(?string $domain, string $provider): array
     {
-        $domainPart = Str::after($email, '@');
-
-        $domain = SsoDomain::where('domain', $domainPart)->first();
-
         if(!$domain) {
             return $this->default($provider);
         }
 
-        if(empty($domain->allowed_providers)) {
+        $ssoDomain = SsoDomain::query()->where('domain', $domain)->first();
+        if(!$ssoDomain) {
+            return $this->default($provider);
+        }
+
+        if(empty($ssoDomain->allowed_providers)) {
             throw new Exception('SSO not configured for domain');
         }
 
-        if(!in_array($provider, $domain->allowed_providers)) {
+        if(!in_array($provider, $ssoDomain->allowed_providers)) {
             throw new Exception('Provider not allowed');
         }
 
-        $custom = $domain->customProviders()
+        $custom = $ssoDomain->customProviders()
             ->where('sso_custom_providers.provider', $provider)
             ->first();
 
         if($custom) {
             return [
-                ...$custom->extra_config,
+                ...($custom->extra_config ?? []),
                 'client_id' => $custom->client_id,
                 'client_secret' => $this->decryptIfEncrypted($custom->client_secret),
                 'redirect' => $custom->redirect_uri,

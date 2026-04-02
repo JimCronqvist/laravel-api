@@ -1,15 +1,13 @@
 <?php
 
-namespace Cronqvist\Api\Auth\Adapters;
+namespace Cronqvist\Api\Auth\SSO\Adapters;
 
-use Cronqvist\Api\Auth\SSO\Adapters\Contracts\SsoProviderAdapter;
 use Laravel\Socialite\Contracts\Provider;
-use Laravel\Socialite\Facades\Socialite;
 
-class MicrosoftAdapter implements SsoProviderAdapter
+class MicrosoftAdapter extends AbstractSocialiteAdapter
 {
     public function build(array $config): Provider
     {
-        return Socialite::buildProvider(\SocialiteProviders\Microsoft\Provider::class, $config);
+        return $this->buildProvider(\SocialiteProviders\Microsoft\Provider::class, $config);
     }
 }

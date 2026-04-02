@@ -2,62 +2,79 @@
 
 namespace Cronqvist\Api\Auth\SSO\Services;
 
+use Cronqvist\Api\Auth\SSO\Rules\EmailOrDomain;
 use Cronqvist\Api\Services\Auth\AuthService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Cronqvist\Api\Auth\SSO\Adapters\SocialiteFactory as SsoSocialiteFactory;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class SsoService
 {
-    protected $useExchangeFlow = false;
+    public static bool $useExchangeFlow = false;
+
+    public static array $allowedGlobalProviders = []; // ['google', 'microsoft', ...]
 
 
-    public function setUseExchangeFlow(bool $useExchangeFlow)
+    public function setUseExchangeFlow(bool $useExchangeFlow): static
     {
-        $this->useExchangeFlow = $useExchangeFlow;
+        static::$useExchangeFlow = $useExchangeFlow;
         return $this;
     }
 
-    public function redirect(Request $request, string $provider)
+    public function redirect(?string $emailOrDomain, string $provider)
     {
-        $email = strtolower($request->validate([
-            'email' => ['required', 'email'],
-        ])['email']);
+        $validator = Validator::make(
+            ['emailOrDomain' => $emailOrDomain],
+            ['emailOrDomain' => ['nullable', new EmailOrDomain()]],
+        );
+        if($validator->fails()) {
+            abort(422, 'The provided email or domain is invalid for SSO.');
+        }
+        [$email, $domain] = $this->splitEmailAndDomain($emailOrDomain);
 
         $resolver = app(SsoProviderResolver::class);
-        $config = $resolver->resolve($email, $provider);
+        $config = $resolver->resolve($domain, $provider);
         $nonce = $this->shouldUseNonce($config) ? Str::random(32) : null;
         $state = app(SsoStateService::class)->encode([
             'provider' => $provider,
             'email' => $email,
+            'domain' => $domain,
             'client_id' => $config['client_id'],
             'nonce' => $nonce,
         ]);
 
+        $parameters = collect([
+            'state'       => $state,
+            'login_hint'  => $email, // For OIDC providers and some others, this can be used to pre-fill the username
+            'hd'          => $provider === 'google' ? $domain : null, // Google specific parameter to restrict login to a specific domain, improves the UX.
+            'domain_hint' => $provider === 'microsoft' ? $domain : null, // For Microsoft providers, this can be used to hint the domain for login, improving the UX.
+            'nonce'       => $nonce,
+            'prompt'      => 'select_account', // Force account selection on the provider side, to avoid silent logins with the wrong account.
+        ])->whereNotNull()->all();
+
         $driver = app(SsoSocialiteFactory::class)
             ->driver($provider, $config, $email)
             ->stateless()
-            ->with([
-                'state' => $state,
-                'login_hint' => $email, // For OIDC providers and some others, this can be used to pre-fill the username
-            ]);
-
-        if($nonce) {
-            $driver->with(['nonce' => $nonce]);
-        }
+            ->with($parameters);
 
         return $driver->redirect();
     }
 
     public function callback(string $state, string $provider, Request $request)
     {
+        if($request->query('error')) {
+            // The provider returned an error, for example if the user canceled the login or if there was an error in the provider configuration.
+            abort(403, "SSO provider '$provider' returned an error: " . $request->query('error_description', $request->query('error')));
+        }
+
         $state = app(SsoStateService::class)->decode($state);
 
         $resolver = app(SsoProviderResolver::class);
-        $config = $resolver->resolve($state['email'], $provider);
+        $config = $resolver->resolve($state['domain'], $provider);
 
         $flowValidator = app(SsoFlowValidator::class);
         $flowValidator->validateState($state, $provider, $config);
@@ -67,7 +84,22 @@ class SsoService
             ->driver($provider, $config)
             ->stateless();
 
-        $providerUser = $driver->user();
+        try {
+            $providerUser = $driver->user();
+            [$providerEmail, $providerDomain] = $this->splitEmailAndDomain($providerUser->getEmail());
+        } catch (\Exception $e) {
+            if($e instanceof \GuzzleHttp\Exception\ClientException) {
+                $response = $e->getResponse();
+                if($response) {
+                    $body = (string) $response->getBody(); // Useful for debugging, break here to see the full error.
+                }
+            }
+            // One time use to get the user, if the page is being refreshed, replay attacks are prevented and usually cause the provider to give an error here.
+            abort(403, 'Failed to retrieve user from the SSO provider ('.$provider.'). ' . (config('app.debug') ? ' '.$e->getMessage() : ''));
+        }
+
+        $flowValidator->validateEmail($providerEmail, $state);
+        $flowValidator->validateDomain($providerDomain, $state);
 
         if($flowValidator->shouldValidateNonce($config)) {
             $idToken = $providerUser->accessTokenResponseBody['id_token'] ?? null;
@@ -79,7 +111,7 @@ class SsoService
             abort(404, 'No user found for this email address.');
         }
 
-        if($this->useExchangeFlow) {
+        if(static::$useExchangeFlow) {
             // For frontend SSO flows - preferred for SPAs and mobile apps
             // We redirect with a code that can be exchanged for a token, instead of issuing the token directly in the
             // callback response. This is to avoid issues with CORS and cookies in frontend applications.
@@ -88,7 +120,7 @@ class SsoService
             // For backend SSO flows - for traditional server-rendered apps, or when the SSO flow is initiated from the
             // backend and the frontend are just a consumer of the tokens.
             // We issue the token directly and redirect with the set-cookie headers set for the tokens.
-            $this->respondDirectly($user, $request);
+            return $this->respondDirectly($user, $request);
         }
     }
 
@@ -125,28 +157,38 @@ class SsoService
         return $redirect;
     }
 
+    public function findUserByEmail(string $email): ?Authenticatable
+    {
+        $userModel = config('auth.providers.users.model');
+
+        return $userModel::query()
+            ->where('email', $email)
+            ->first();
+    }
+
     protected function resolveUser(SocialiteUser $providerUser, string $provider): ?Authenticatable
     {
         $email = strtolower($providerUser->getEmail());
         $providerId = $providerUser->getId();
 
-        $userModel = config('auth.providers.users.model');
-
-        $user = $userModel::query()
-            ->where('email', $email)
-            ->first();
-
+        $user = $this->findUserByEmail($email);
         if(!$user) {
             return null;
         }
 
+        // If the user is not yet bound to an SSO provider, bind it. This allows existing users to be associated with
+        // an SSO provider on their first login, without requiring a separate account linking flow.
         if(!$user->isSsoBound()) {
             $user->bindSso($provider, $providerId);
         }
 
+        if(!$user->isSsoBound()) {
+            abort(403, 'This user could not be associated to the SSO provider.');
+        }
+
         // Identity enforcement
         if($user->sso_provider !== $provider) {
-            abort(403, 'This user is associated with a different SSO provider.');
+            abort(403, "This user is associated with a different SSO provider. Please use '$user->sso_provider' to log in.");
         }
         if($user->sso_provider_id !== $providerId) {
             abort(403, 'This user is already associated with a different SSO identity.');
@@ -158,5 +200,32 @@ class SsoService
     protected function shouldUseNonce(array $config): bool
     {
         return isset($config['issuer']) || ($config['oidc'] ?? false);
+    }
+
+    public static function getGlobalProviders(): array
+    {
+        $providers = [];
+        foreach(self::$allowedGlobalProviders as $provider) {
+            if(config("services.$provider.client_id")) {
+                $providers[] = $provider;
+            }
+        }
+        return $providers;
+    }
+
+    public function splitEmailAndDomain(?string $emailOrDomain): array
+    {
+        $email = null;
+        $domain = null;
+        if(is_string($emailOrDomain)) {
+            $emailOrDomain = strtolower($emailOrDomain);
+            if(filter_var($emailOrDomain, FILTER_VALIDATE_EMAIL)) {
+                $email = $emailOrDomain;
+                $domain = explode('@', $emailOrDomain)[1] ?? null;
+            } elseif (filter_var($emailOrDomain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)) {
+                $domain = $emailOrDomain;
+            }
+        }
+        return [$email, $domain];
     }
 }

@@ -2,11 +2,10 @@
 
 namespace Cronqvist\Api\Auth\SSO\Adapters;
 
-use Cronqvist\Api\Auth\SSO\Adapters\Contracts\SsoProviderAdapter;
 use Cronqvist\Api\Auth\SSO\Adapters\Providers\GenericOidcProvider;
 use Laravel\Socialite\Contracts\Provider;
 
-class OidcAdapter implements SsoProviderAdapter
+class OidcAdapter extends AbstractSocialiteAdapter
 {
     public function build(array $config): Provider
     {

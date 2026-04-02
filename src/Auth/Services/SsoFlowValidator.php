@@ -15,6 +15,20 @@ class SsoFlowValidator
         }
     }
 
+    public function validateEmail(string $email, array $state): void
+    {
+        if($state['email'] !== null && $email !== $state['email']) {
+            abort(403, 'Email mismatch');
+        }
+    }
+
+    public function validateDomain(string $domain, array $state): void
+    {
+        if($state['domain'] !== null && $domain !== $state['domain']) {
+            abort(403, 'Domain mismatch');
+        }
+    }
+
     public function validateNonce(string $idToken, array $state, array $config): void
     {
         if(!$idToken) {

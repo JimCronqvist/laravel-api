@@ -9,6 +9,11 @@ trait HasSso
         return !empty($this->sso_provider) && !empty($this->sso_provider_id);
     }
 
+    public function getSsoProvider(): ?string
+    {
+        return $this->sso_provider ?? null;
+    }
+
     public function bindSso(string $provider, string $providerId): void
     {
         $this->update([

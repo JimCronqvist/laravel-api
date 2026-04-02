@@ -34,15 +34,15 @@ class SsoStateService
         try {
             $payload = json_decode(Crypt::decryptString($state), true);
         } catch(\Throwable $e) {
-            throw new Exception('Invalid state payload');
+            throw new Exception('SSO invalid state payload');
         }
 
         if(!isset($payload['ts'])) {
-            throw new Exception('State missing timestamp');
+            throw new Exception('SSO state missing timestamp');
         }
 
         if($this->isExpired($payload['ts'])) {
-            throw new Exception('State expired');
+            throw new Exception('SSO state expired');
         }
 
         return $payload;

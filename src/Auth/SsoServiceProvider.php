@@ -2,8 +2,8 @@
 
 namespace Cronqvist\Api\Auth\SSO;
 
-use Cronqvist\Api\Auth\Adapters\MicrosoftAdapter;
-use Cronqvist\Api\Auth\Adapters\OktaAdapter;
+use Cronqvist\Api\Auth\SSO\Adapters\MicrosoftAdapter;
+use Cronqvist\Api\Auth\SSO\Adapters\OktaAdapter;
 use Cronqvist\Api\Auth\SSO\Adapters\GoogleAdapter;
 use Cronqvist\Api\Auth\SSO\Adapters\SocialiteFactory;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
