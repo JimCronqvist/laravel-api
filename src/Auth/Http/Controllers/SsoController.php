@@ -37,7 +37,6 @@ class SsoController extends Controller
         $userModel = config('auth.providers.users.model');
         $user = $userModel::findOrFail($userId);
 
-        // @todo Fix how we issue tokens.
         return app(AuthService::class)->loginAs($user);
     }
 
