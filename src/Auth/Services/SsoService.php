@@ -157,12 +157,16 @@ class SsoService
 
         // No domain → fallback to default providers
         if(!$ssoDomain) {
-            $globalProviders = static::getGlobalProviders();
+            $globalProviders = $currentUserProvider
+                ? Arr::onlyValues(static::getGlobalProviders(), $currentUserProvider)
+                : static::getGlobalProviders();
+
             return [
-                'providers' => $currentUserProvider
-                    ? Arr::onlyValues($globalProviders, $currentUserProvider)
-                    : $globalProviders,
                 'mode' => SsoDomain::LOGIN_MODE_SSO_OPTIONAL,
+                'providers' => collect($globalProviders)->map(fn($provider) => [
+                    'provider' => $provider,
+                    'name'     => ucfirst($provider),
+                ])->all(),
             ];
         }
 
@@ -174,15 +178,32 @@ class SsoService
 
         if(empty($allowedProviders)) {
             return [
-                'providers' => [],
                 'mode' => $bypass ? SsoDomain::LOGIN_MODE_SSO_OPTIONAL : $ssoDomain->login_mode,
+                'providers' => [],
                 'error' => 'SSO not allowed. No providers configured for this ' . ($email ? 'email' : 'domain') . '.',
             ];
         }
 
+        $customProviders = $ssoDomain->customProviders ?? collect([]);
+        $providers = [];
+        foreach($allowedProviders as $provider) {
+            $customForProvider = $customProviders->where('provider', $provider)->first();
+            if($customForProvider) {
+                $providers[] = [
+                    'provider' => $provider,
+                    'name' => $customForProvider->name,
+                ];
+            } else {
+                $providers[] = [
+                    'provider' => $provider,
+                    'name' => ucfirst($provider),
+                ];
+            }
+        }
+
         return [
-            'providers' => $allowedProviders,
             'mode' => $bypass ? SsoDomain::LOGIN_MODE_SSO_OPTIONAL : $ssoDomain->login_mode,
+            'providers' => $providers,
         ];
     }
 
