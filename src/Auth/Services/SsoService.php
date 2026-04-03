@@ -144,10 +144,14 @@ class SsoService
         }
 
         $currentUserProvider = null;
+        $bypass = false;
         if($email) {
             $user = $this->findUserByEmail($email);
             if($user) {
                 $currentUserProvider = $user->getSsoProvider();
+                if($user->sso_policy_bypass) {
+                    $bypass = true;
+                }
             }
         }
 
@@ -171,14 +175,14 @@ class SsoService
         if(empty($allowedProviders)) {
             return [
                 'providers' => [],
-                'mode' => $ssoDomain->login_mode,
+                'mode' => $bypass ? SsoDomain::LOGIN_MODE_SSO_OPTIONAL : $ssoDomain->login_mode,
                 'error' => 'SSO not allowed. No providers configured for this ' . ($email ? 'email' : 'domain') . '.',
             ];
         }
 
         return [
             'providers' => $allowedProviders,
-            'mode' => $ssoDomain->login_mode,
+            'mode' => $bypass ? SsoDomain::LOGIN_MODE_SSO_OPTIONAL : $ssoDomain->login_mode,
         ];
     }
 
