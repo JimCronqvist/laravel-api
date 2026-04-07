@@ -18,7 +18,10 @@ class EnforceSsoPolicyOnLogin
 
         $domainPart = Str::after($email, '@');
 
-        $domain = SsoDomain::query()->where('domain', $domainPart)->first();
+        $domain = SsoDomain::query()
+            ->where('domain', $domainPart)
+            ->where('verified', 1)
+            ->first();
 
         if(!$domain) {
             return $next($request);

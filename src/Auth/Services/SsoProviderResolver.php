@@ -5,8 +5,8 @@ namespace Cronqvist\Api\Auth\SSO\Services;
 use Cronqvist\Api\Auth\SSO\Models\SsoDomain;
 use Exception;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Str;
 
 class SsoProviderResolver
 {
@@ -16,7 +16,10 @@ class SsoProviderResolver
             return $this->default($provider);
         }
 
-        $ssoDomain = SsoDomain::query()->where('domain', $domain)->first();
+        $ssoDomain = SsoDomain::query()
+            ->where('domain', $domain)
+            ->where('verified', 1)
+            ->first();
         if(!$ssoDomain) {
             return $this->default($provider);
         }
@@ -34,24 +37,25 @@ class SsoProviderResolver
             ->first();
 
         if($custom) {
+            $default = $this->default($provider, false);
             return [
                 ...($custom->extra_config ?? []),
-                'client_id' => $custom->client_id,
-                'client_secret' => $this->decryptIfEncrypted($custom->client_secret),
-                'redirect' => $custom->redirect_uri,
-                'scopes' => $custom->scopes,
-                'issuer' => $custom->issuer,
+                'client_id' => $custom->client_id ?? Arr::get($default, 'client_id'),
+                'client_secret' => $this->decryptIfEncrypted($custom->client_secret) ?? Arr::get($default, 'client_secret'),
+                'redirect' => $custom->redirect_uri ?? Arr::get($default, 'redirect'),
+                'scopes' => $custom->scopes ?? Arr::get($default, 'scopes', []),
+                'issuer' => $custom->issuer ?? Arr::get($default, 'issuer'),
             ];
         }
 
         return $this->default($provider);
     }
 
-    protected function default(string $provider): array
+    protected function default(string $provider, $throwIfNotFound = true): array
     {
-        $config = config("services.$provider");
+        $config = config("services.$provider", []);
 
-        if(!$config) {
+        if(!$config && $throwIfNotFound) {
             throw new Exception("No global services config for [$provider]");
         }
 
