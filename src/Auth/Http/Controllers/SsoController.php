@@ -44,6 +44,6 @@ class SsoController extends Controller
     {
         $providers = app(SsoService::class)->providers($emailOrDomain);
 
-        return response()->json($providers, isset($providers['error']) ? 422 : 200);
+        return response()->json($providers, isset($providers['code']) ? (int) $providers['code'] : 200);
     }
 }

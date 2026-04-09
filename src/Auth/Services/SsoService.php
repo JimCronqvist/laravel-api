@@ -180,7 +180,8 @@ class SsoService
             return [
                 'mode' => $bypass ? SsoDomain::LOGIN_MODE_SSO_OPTIONAL : $ssoDomain->login_mode,
                 'providers' => [],
-                'error' => 'SSO not allowed. No providers configured for this ' . ($email ? 'email' : 'domain') . '.',
+                'description' => 'SSO not allowed. No providers configured for this ' . ($email ? 'email' : 'domain') . '.',
+                'code' => 200,
             ];
         }
 
