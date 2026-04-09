@@ -172,8 +172,8 @@ class SsoService
 
         // If the user has a provider that is allowed for the domain, only return that one to avoid the wrong choice.
         $allowedProviders = $ssoDomain->allowed_providers ?? [];
-        if($currentUserProvider && in_array($currentUserProvider, $allowedProviders)) {
-            $allowedProviders = [$currentUserProvider];
+        if($currentUserProvider) {
+            $allowedProviders = in_array($currentUserProvider, $allowedProviders) ? [$currentUserProvider] : [];
         }
 
         if(empty($allowedProviders)) {
@@ -185,7 +185,7 @@ class SsoService
             ];
         }
 
-        $customProviders = $ssoDomain->customProviders ?? collect([]);
+        $customProviders = $ssoDomain->customProviders ?? collect();
         $providers = [];
         foreach($allowedProviders as $provider) {
             $customForProvider = $customProviders->where('provider', $provider)->first();
