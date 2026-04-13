@@ -2,12 +2,13 @@
 
 namespace Cronqvist\Api\Models;
 
-use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\Activitylog\Models\Concerns\LogsActivity as SpatieLogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
-trait LogsActivityDefaults
+trait LogsActivity
 {
-    use LogsActivity;
+    use SpatieLogsActivity;
 
     protected function defaultLogOptionsExceptions(array $extra = []): array
     {
@@ -41,5 +42,18 @@ trait LogsActivityDefaults
     public function getActivitylogOptions(): LogOptions
     {
         return $this->defaultLogOptions();
+    }
+
+    protected function resolveModelForLogging(string $processingEvent): static
+    {
+        // Do not refresh the model from DB before logging, as it will create an extra unnecessary DB query.
+        // This also helps with logging created models, where only the set values gets logged, instead of all attributes
+        // after refreshing from DB.
+        return $this;
+    }
+
+    public function activities(): MorphMany
+    {
+        return $this->activitiesAsSubject();
     }
 }
