@@ -6,26 +6,31 @@ use Spatie\Activitylog\Support\LogOptions;
 
 trait LogsActivityDefaults
 {
+    protected function defaultLogOptionsExceptions(array $extra = []): array
+    {
+        return array_merge($extra, [
+            'password',
+            'password_confirmation',
+            'remember_token',
+            'login_token',
+            'api_token',
+            'api_key',
+            'access_token',
+            'refresh_token',
+            'client_secret',
+            'secret',
+            'private_key',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+        ]);
+    }
+
     protected function defaultLogOptions(): LogOptions
     {
         return LogOptions::defaults()
             ->logAll()
-            ->logExcept([
-                'password',
-                'password_confirmation',
-                'remember_token',
-                'login_token',
-                'api_token',
-                'api_key',
-                'access_token',
-                'refresh_token',
-                'client_secret',
-                'secret',
-                'private_key',
-                'created_at',
-                'updated_at',
-                'deleted_at',
-            ])
+            ->logExcept($this->defaultLogOptionsExceptions())
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
