@@ -2,10 +2,13 @@
 
 namespace Cronqvist\Api\Models;
 
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 trait LogsActivityDefaults
 {
+    use LogsActivity;
+
     protected function defaultLogOptionsExceptions(array $extra = []): array
     {
         return array_merge($extra, [
