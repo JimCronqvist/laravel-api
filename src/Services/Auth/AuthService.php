@@ -68,9 +68,16 @@ class AuthService
     /**
      * Define which relations to load for the user endpoint. To be able to utilize 'whenLoaded' in the UserResource.
      *
-     * @var bool
+     * @var array
      */
     public static $loadRelations = [];
+
+    /**
+     * Define which relation counts to load for the user endpoint. To be able to utilize 'whenCounted' in the UserResource.
+     *
+     * @var array
+     */
+    public static $loadRelationsCount = [];
 
 
     /**
@@ -404,6 +411,7 @@ class AuthService
         $user = auth('api')->user();
         if($user) {
             $user->load(static::$loadRelations);
+            $user->loadCount(static::$loadRelationsCount);
         }
         return $user;
     }
