@@ -38,7 +38,8 @@
   "autoload": {
     "psr-4": {
       "Cronqvist\\Api\\": "src/",
-      "Cronqvist\\Api\\Auth\\SSO\\": "src/Auth/"
+      "Cronqvist\\Api\\Auth\\SSO\\": "src/Auth/",
+      "Cronqvist\\Tenancy\\": "src/Tenancy/"
     }
   },
   "extra": {
