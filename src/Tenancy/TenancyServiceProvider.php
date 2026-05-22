@@ -12,7 +12,7 @@ class TenancyServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(Tenant::class);
+        $this->app->scoped(Tenant::class); // Singleton that is reset per request lifecycle automatically
         $this->telescopeTag();
         $this->registerMiddlewareAliases();
     }
