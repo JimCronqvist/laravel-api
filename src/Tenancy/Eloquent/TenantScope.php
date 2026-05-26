@@ -15,8 +15,26 @@ class TenantScope implements Scope
             return;
         }
 
-        $tenantIdColumn = Tenant::getTenant()->getTenantIdColumn();
+        $tenantIdColumn = $this->getTenantIdColumn($model);
         $builder->where($model->qualifyColumn($tenantIdColumn), '=', Tenant::getTenantId());
+    }
+
+    protected function getTenantIdColumn(Model $model)
+    {
+        // Default key
+        $tenantIdColumn = Tenant::getTenant()->getTenantIdColumn();
+
+        // When the Tenant scope is applied on its own model, check against auto increment id
+        if(get_class($model) === get_class(Tenant::getTenant())) {
+            $tenantIdColumn = $model->getKeyName();
+        }
+
+        // If overridden per model, if set to null, it is ignored.
+        if(isset($model->tenantIdColumn)) {
+            $tenantIdColumn = $model->tenantIdColumn;
+        }
+
+        return $tenantIdColumn;
     }
 
     public function extend(Builder $builder)
