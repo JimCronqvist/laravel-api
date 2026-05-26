@@ -187,9 +187,9 @@ abstract class ApiController
             /** @var \Illuminate\Database\Query\Builder $query */
             $query = $builder->getQuery() instanceof Builder ? $builder->getBaseQuery() : $builder->getQuery();
             $builder->setQuery($query->cloneWithout([
-                'joins', 'wheres', 'groups', 'havings', 'orders', 'offset',
+                'groups', 'havings', 'orders', 'offset', // 'joins', 'wheres' - removed due to global scope, such as tenant
                 'unions', 'unionLimit', 'unionOffset', 'unionOrders'
-            ])->cloneWithoutBindings(['join', 'where', 'groupBy', 'having', 'order', 'union', 'unionOrder']));
+            ])->cloneWithoutBindings(['groupBy', 'having', 'order', 'union', 'unionOrder'])); // 'join', 'where' - removed due to global scope, such as tenant
 
             // Empty the eager loads and add them after we are sure that we are authorized for this method.
             // Prevents issues if for example the auth object is used in relations, and avoids unnecessary queries if
