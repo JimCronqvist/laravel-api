@@ -409,15 +409,16 @@ abstract class ApiController
                 }
                 if(empty($jwt)) {
                     $message = 'Not authenticated, no token provided.';
+                } else {
+                    try {
+                        $token = Configuration::forUnsecuredSigner()->parser()->parse($jwt);
+                        $validAt = new LooseValidAt(new SystemClock(new \DateTimeZone(\date_default_timezone_get())));
+                        $expired = Configuration::forUnsecuredSigner()->validator()->validate($token, $validAt) === false;
+                        if($expired) {
+                            $message = 'Not authenticated, token expired.';
+                        }
+                    } catch (Exception $e) {}
                 }
-                try {
-                    $token = Configuration::forUnsecuredSigner()->parser()->parse($jwt);
-                    $validAt = new LooseValidAt(new SystemClock(new \DateTimeZone(\date_default_timezone_get())));
-                    $expired = Configuration::forUnsecuredSigner()->validator()->validate($token, $validAt) === false;
-                    if($expired) {
-                        $message = 'Not authenticated, token expired.';
-                    }
-                } catch (Exception $e) {}
                 $exception = new AuthenticationException($message, ['api']);
             } else {
                 $modelOrClass = empty($arguments) ? $this->modelClass : $arguments[0];
