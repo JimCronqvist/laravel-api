@@ -17,36 +17,39 @@ class ApiFilter
      * Filters: eq, neq, in, nin
      *
      * @see \Cronqvist\Api\Services\QueryBuilder\Filters\FilterEqual::$allowedOperators
-     * @param string $column
+     * @param string $name
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
      */
-    public static function equal($column)
+    public static function equal(string $name, ?string $column = null)
     {
-        return AllowedFilter::custom($column, new FilterEqual());
+        return AllowedFilter::custom($name, new FilterEqual(), $column);
     }
 
     /**
      * All filters except the ones involving a 'like'
      *
-     * @see \Cronqvist\Api\Services\QueryBuilder\Filters\FilterStandard::$allowedOperators
+     * @param string $name
      * @param string $column
      * @return \Spatie\QueryBuilder\AllowedFilter
+     *@see \Cronqvist\Api\Services\QueryBuilder\Filters\FilterStandard::$allowedOperators
      */
-    public static function standard($column)
+    public static function standard(string $name, ?string $column = null)
     {
-        return AllowedFilter::custom($column, new FilterStandard());
+        return AllowedFilter::custom($name, new FilterStandard(), $column);
     }
 
     /**
      * All filters
      *
-     * @see \Cronqvist\Api\Services\QueryBuilder\Filters\FilterFull::$allowedOperators
-     * @param string $column
+     * @param string $name
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
+     *@see \Cronqvist\Api\Services\QueryBuilder\Filters\FilterFull::$allowedOperators
      */
-    public static function full($column)
+    public static function full(string $name, ?string $column = null)
     {
-        return AllowedFilter::custom($column, new FilterFull());
+        return AllowedFilter::custom($name, new FilterFull(), $column);
     }
 
     /**
@@ -63,13 +66,14 @@ class ApiFilter
     /**
      * Custom filter
      *
-     * @param string $column
+     * @param string $name
      * @param \Spatie\QueryBuilder\Filters\Filter $filterClass
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
      */
-    public static function custom($column, Filter $filterClass)
+    public static function custom($name, Filter $filterClass, ?string $column = null)
     {
-        return AllowedFilter::custom($column, $filterClass);
+        return AllowedFilter::custom($name, $filterClass, $column);
     }
 
     /**
@@ -77,11 +81,11 @@ class ApiFilter
      *
      * @param string $name
      * @param string $relation
-     * @param string $column
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
      * @see equal
      */
-    public static function whereHasEqual($name, $relation, $column = null)
+    public static function whereHasEqual($name, $relation, ?string $column = null)
     {
         return AllowedFilter::custom($name, new FilterWhereHasEqual($relation), $column);
     }
@@ -91,11 +95,11 @@ class ApiFilter
      *
      * @param string $name
      * @param string $relation
-     * @param string $column
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
      * @see equal
      */
-    public static function whereHasStandard($name, $relation, $column = null)
+    public static function whereHasStandard(string $name, string $relation, ?string $column = null)
     {
         return AllowedFilter::custom($name, new FilterWhereHasStandard($relation), $column);
     }
@@ -105,11 +109,11 @@ class ApiFilter
      *
      * @param string $name
      * @param string $relation
-     * @param string $column
+     * @param string|null $column
      * @return \Spatie\QueryBuilder\AllowedFilter
      * @see equal
      */
-    public static function whereHasFull($name, $relation, $column = null)
+    public static function whereHasFull(string $name, string $relation, ?string $column = null)
     {
         return AllowedFilter::custom($name, new FilterWhereHasFull($relation), $column);
     }
