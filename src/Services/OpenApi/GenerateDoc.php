@@ -200,16 +200,26 @@ class GenerateDoc
             $formRequest = $this->resolveFormRequestFor($this->getModelClassFromRoute($route));
             $rules = $formRequest->rules();
 
-            foreach($rules as $field => $rule) {
-                $split = explode('|', $rule);
+            foreach($rules as $field => $fieldRules) {
+                $fieldRules = (array) $fieldRules;
+                $split = [];
+                foreach($fieldRules as $rule) {
+                    if(is_object($rule)) {
+                        $split[] = $rule::class;
+                    } elseif(is_string($rule)) {
+                        $split[] = $rule;
+                    } else {
+                        $split[] = 'Unknown rule type: ' . gettype($rule);
+                    }
+                }
                 $parameters[] = [
                     'name' => $field,
                     'in' => 'formData',
-                    'description' => 'Rules: ' . $rule,
+                    'description' => 'Rules: ' . implode(', ', $split),
                     'required' => in_array('required', $split) && !in_array('sometimes', $split),
                     'schema' => [
                         'type' => in_array('integer', $split) ? 'integer' : (in_array('numeric', $split) ? 'number' : 'string')
-                    ]
+                    ],
                 ];
             }
         }
