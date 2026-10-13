@@ -1,4 +1,3 @@
-
 <?php
 
 namespace Cronqvist\Api\Models\Casts;
