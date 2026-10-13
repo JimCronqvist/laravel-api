@@ -5,6 +5,7 @@ namespace Cronqvist\Api\Http\Resources;
 use Cronqvist\Api\Services\Helpers\GuessForModel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
 
 trait TransformRelationToResource
@@ -26,14 +27,38 @@ trait TransformRelationToResource
      */
     protected function transformRelations($data)
     {
-        $model = $this->resource instanceof Model ? $this->resource : null;
-        if($model) {
-            foreach($model->getRelations() as $relation => $value) {
-                $class = get_class($model);
-                $key = $class::$snakeAttributes ? Str::snake($relation) : $relation;
-                $data[$key] = $this->transformRelation($value);
-            }
+        $model = $this->resource;
+
+        if(!$model instanceof Model) {
+            return $data;
         }
+
+        foreach($model->getRelations() as $relation => $value) {
+            $key = $model::$snakeAttributes ? Str::snake($relation) : $relation;
+
+            // Only transform relations that are part of the response
+            if(!array_key_exists($key, $data)) continue;
+
+            // Only transform relations that are not already transformed to a resource
+            if($data[$key] instanceof JsonResource) {
+                continue;
+            }
+
+            // Transform raw Model or Collection instances essentially coming from ->whenLoaded()
+            if ($data[$key] instanceof Model || $data[$key] instanceof Collection) {
+                $data[$key] = $this->transformRelation($data[$key]);
+                continue;
+            }
+
+            // Transform relationships serialized by Eloquent.
+            // NOTE: For now we have disabled this due to the performance impact of calling toArray() on large collections.
+            // Current strategy is that we by default do not include relations in the toArray in the ApiResource.
+            //if(is_array($data[$key]) && ($value instanceof Model || $value instanceof Collection) && $data[$key] === $value->toArray()) {
+            //    $data[$key] = $this->transformRelation($value);
+            //    continue;
+            //}
+        }
+
         return $data;
     }
 
