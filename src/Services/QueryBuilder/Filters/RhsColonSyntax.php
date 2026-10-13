@@ -131,8 +131,16 @@ trait RhsColonSyntax
         // Apply the filter to the Builder
         if(in_array($operator, ['btw', 'nbtw'])) {
             $query->whereBetween($column, $value, 'and', $operator == 'nbtw');
-        } else if(in_array($operator, ['in', 'nin'])) {
-            $query->whereIn($column, $value, 'and', $operator == 'nin');
+        } else if($operator == 'nin') {
+            $query->where(function(Builder $query) use($column, $value) {
+                $query->whereNotIn($column, $value)->orWhereNull($column);
+            });
+        } else if($operator == 'in') {
+            $query->whereIn($column, $value);
+        } else if($operator == 'neq') {
+            $query->where(function(Builder $query) use($column, $value) {
+                $query->where($column, '!=', $value)->orWhereNull($column);
+            });
         } else {
             $query->where($column, $this->operatorsMap[$operator], $value);
         }
