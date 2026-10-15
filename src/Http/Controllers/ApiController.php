@@ -164,11 +164,10 @@ abstract class ApiController
 
         if($this->service && method_exists($this->service, 'create')) {
             $model = $this->service->create($formRequest->validated());
-            $model->refresh();
         } else {
             $model = $this->getModelClass()::create($formRequest->validated());
-            $model->refresh();
         }
+        $model->unsetRelations()->refresh();
         return $this->toResource($model);
     }
 
@@ -301,11 +300,10 @@ abstract class ApiController
 
         if($this->service && method_exists($this->service, 'update')) {
             $this->service->update($model, $formRequest->validated());
-            $model->refresh();
         } else {
             $model->update($formRequest->validated());
-            $model->refresh();
         }
+        $model->unsetRelations()->refresh();
         return $this->toResource($model);
     }
 
